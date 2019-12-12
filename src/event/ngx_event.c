@@ -50,11 +50,11 @@ ngx_atomic_t         *ngx_connection_counter = &connection_counter;
 
 ngx_atomic_t         *ngx_accept_mutex_ptr;
 ngx_shmtx_t           ngx_accept_mutex;
-ngx_uint_t            ngx_use_accept_mutex; // 使用使用accept锁
+ngx_uint_t            ngx_use_accept_mutex;
 ngx_uint_t            ngx_accept_events;
 ngx_uint_t            ngx_accept_mutex_held;
 ngx_msec_t            ngx_accept_mutex_delay;
-ngx_int_t             ngx_accept_disabled;
+ngx_int_t             ngx_accept_disabled; // 是否要竞争accept锁
 
 
 #if (NGX_STAT_STUB)
@@ -195,7 +195,7 @@ ngx_module_t  ngx_event_core_module = {
     NGX_MODULE_V1_PADDING
 };
 
-// 监听处理事件
+// 监听处理事件和计时器
 void
 ngx_process_events_and_timers(ngx_cycle_t *cycle)
 {
@@ -262,7 +262,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_event_expire_timers();
     }
 
-    ngx_event_process_posted(cycle, &ngx_posted_events);
+    ngx_event_process_posted(cycle, &ngx_posted_events); // 计时器有可能会新增ngx_posted_events
 }
 
 
@@ -609,7 +609,7 @@ ngx_timer_signal_handler(int signo)
 
 #endif
 
-
+// 会调用对应的 io多路复用 模块的初始化函数
 static ngx_int_t
 ngx_event_process_init(ngx_cycle_t *cycle)
 {
@@ -624,7 +624,6 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
     ecf = ngx_event_get_conf(cycle->conf_ctx, ngx_event_core_module);
 
-    // 
     if (ccf->master && ccf->worker_processes > 1 && ecf->accept_mutex) {
         ngx_use_accept_mutex = 1;
         ngx_accept_mutex_held = 0;
@@ -652,12 +651,11 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    // 定位找到 use 命令指定的事件模块，调用对应的event模块的action.init
     for (m = 0; cycle->modules[m]; m++) {
         if (cycle->modules[m]->type != NGX_EVENT_MODULE) {
             continue;
         }
-
+        // 定位找到 use 命令指定的事件模块
         if (cycle->modules[m]->ctx_index != ecf->use) {
             continue;
         }

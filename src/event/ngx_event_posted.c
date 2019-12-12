@@ -10,10 +10,10 @@
 #include <ngx_event.h>
 
 
-ngx_queue_t  ngx_posted_accept_events;
-ngx_queue_t  ngx_posted_events;
+ngx_queue_t  ngx_posted_accept_events; // 需要处理 socket accept 事件队列
+ngx_queue_t  ngx_posted_events; // 需要处理的 socket 读写事件队列
 
-
+// 回调队列里面的事件
 void
 ngx_event_process_posted(ngx_cycle_t *cycle, ngx_queue_t *posted)
 {

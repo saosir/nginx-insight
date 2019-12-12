@@ -49,7 +49,7 @@ ngx_event_find_timer(void)
     return (ngx_msec_t) (timer > 0 ? timer : 0);
 }
 
-
+// 执行红黑树中已触发的计时器
 void
 ngx_event_expire_timers(void)
 {
@@ -68,7 +68,7 @@ ngx_event_expire_timers(void)
         node = ngx_rbtree_min(root, sentinel);
 
         /* node->key > ngx_current_msec */
-
+        // 时间未到
         if ((ngx_msec_int_t) (node->key - ngx_current_msec) > 0) {
             return;
         }

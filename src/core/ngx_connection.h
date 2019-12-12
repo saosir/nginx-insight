@@ -35,7 +35,7 @@ struct ngx_listening_s {
 #endif
 
     /* handler of accepted connection */
-    ngx_connection_handler_pt   handler;
+    ngx_connection_handler_pt   handler; // accept事件发生后被回调
 
     void               *servers;  /* array of ngx_http_in_addr_t, for example */
 
@@ -122,7 +122,7 @@ typedef enum {
 
 
 struct ngx_connection_s {
-    void               *data; // 与连接关联的数据参数
+    void               *data; // 与连接关联的数据参数，在free_connections作为next指针
     // 事件通知函数
     ngx_event_t        *read;
     ngx_event_t        *write;

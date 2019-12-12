@@ -202,7 +202,7 @@ ngx_http_header_t  ngx_http_headers_in[] = {
     { ngx_null_string, 0, NULL }
 };
 
-// 处理socket连接http请求
+// 处理socket连接http请求，http监听socket收到客户端连接会被调用
 void
 ngx_http_init_connection(ngx_connection_t *c)
 {

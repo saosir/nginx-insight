@@ -1149,7 +1149,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     rev->index = NGX_INVALID_INDEX;
     wev->index = NGX_INVALID_INDEX;
 
-    rev->data = c;
+    rev->data = c; // 默认event的参数为connection
     wev->data = c;
 
     wev->write = 1;

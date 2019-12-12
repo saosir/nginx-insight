@@ -41,7 +41,7 @@ struct ngx_event_s {
      * the event was passed or would be passed to a kernel;
      * in aio mode - operation was posted.
      */
-    unsigned         active:1;
+    unsigned         active:1; // 是否在io模型中等待事件
 
     unsigned         disabled:1;
 
@@ -407,7 +407,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define NGX_CLEAR_EVENT    0    /* dummy declaration */
 #endif
 
-
+// 由使用的io多路复用模式指定
 #define ngx_process_events   ngx_event_actions.process_events
 #define ngx_done_events      ngx_event_actions.done
 
@@ -417,13 +417,13 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define ngx_del_conn         ngx_event_actions.del_conn
 
 #define ngx_notify           ngx_event_actions.notify
-
+// 定时器独立于io事件，使用红黑树实现
 #define ngx_add_timer        ngx_event_add_timer
 #define ngx_del_timer        ngx_event_del_timer
 
 
 extern ngx_os_io_t  ngx_io;
-
+// 操作系统文件io操作
 #define ngx_recv             ngx_io.recv
 #define ngx_recv_chain       ngx_io.recv_chain
 #define ngx_udp_recv         ngx_io.udp_recv

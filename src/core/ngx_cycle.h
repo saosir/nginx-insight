@@ -45,7 +45,7 @@ struct ngx_cycle_s {
 
     ngx_uint_t                log_use_stderr;  /* unsigned  log_use_stderr:1; */
 
-    ngx_connection_t        **files;
+    ngx_connection_t        **files; // 预先分配file_n个空槽
     ngx_connection_t         *free_connections; // 初始指向 connections
     ngx_uint_t                free_connection_n; // 初始等于 connection_n
 
@@ -67,9 +67,9 @@ struct ngx_cycle_s {
     ngx_list_t                shared_memory;
 
     ngx_uint_t                connection_n; // 最大连接数
-    ngx_uint_t                files_n;
+    ngx_uint_t                files_n; // 最大文件打开数
 
-    ngx_connection_t         *connections; // 预先分配连接槽
+    ngx_connection_t         *connections; // 预先分配connection_n个空槽
     ngx_event_t              *read_events; // 预先分配的读写事件槽
     ngx_event_t              *write_events;
 

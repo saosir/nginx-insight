@@ -238,10 +238,9 @@ struct ngx_module_s {
     ngx_int_t           (*init_master)(ngx_log_t *log);
 
     ngx_int_t           (*init_module)(ngx_cycle_t *cycle); // 读取解析完配置后调用 ngx_init_cycle
-    // worker模式：fork子进程后在ngx_worker_process_init中调用
-    // thread模式：创建子线程后在ngx_worker_thread中调用
-    ngx_int_t           (*init_process)(ngx_cycle_t *cycle); 
-    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle); // 未使用
+
+    ngx_int_t           (*init_process)(ngx_cycle_t *cycle); // 工作进程启动时候调用，见ngx_worker_process_init
+    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle); // 默认为null
     void                (*exit_thread)(ngx_cycle_t *cycle);
     void                (*exit_process)(ngx_cycle_t *cycle);
 

@@ -728,6 +728,7 @@ ngx_master_process_exit(ngx_cycle_t *cycle)
 }
 
 
+// worker处理循环
 static void
 ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 {
@@ -780,7 +781,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
     }
 }
 
-
+// 工作进程初始化，与父进程建立通信，设置进程优先级，绑核，调用每个模块的init_process
 static void
 ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
 {
@@ -933,6 +934,7 @@ ngx_worker_process_init(ngx_cycle_t *cycle, ngx_int_t worker)
         ls[i].previous = NULL;
     }
 
+    // 调用每个模块的init_process工作进程初始化
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->init_process) {
             if (cycle->modules[i]->init_process(cycle) == NGX_ERROR) {
