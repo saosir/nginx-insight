@@ -16,7 +16,8 @@ static ngx_int_t ngx_event_connect_set_transparent(ngx_peer_connection_t *pc,
     ngx_socket_t s);
 #endif
 
-
+// 连接后端Peer
+// 返回NGX_DECLINED需要再次连接
 ngx_int_t
 ngx_event_connect_peer(ngx_peer_connection_t *pc)
 {
@@ -133,7 +134,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
 #endif
 
 #if (NGX_LINUX)
-
+        // udp重用地址
         if (pc->type == SOCK_DGRAM && port != 0) {
             int  reuse_addr = 1;
 
@@ -148,7 +149,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
         }
 
 #endif
-
+        // 绑定地址
         if (bind(s, pc->local->sockaddr, pc->local->socklen) == -1) {
             ngx_log_error(NGX_LOG_CRIT, pc->log, ngx_socket_errno,
                           "bind(%V) failed", &pc->local->name);
@@ -156,7 +157,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
             goto failed;
         }
     }
-
+    // tcp连接
     if (type == SOCK_STREAM) {
         c->recv = ngx_recv;
         c->send = ngx_send;
@@ -202,8 +203,9 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     ngx_log_debug3(NGX_LOG_DEBUG_EVENT, pc->log, 0,
                    "connect to %V, fd:%d #%uA", pc->name, s, c->number);
 
+    // 发起socket连接
     rc = connect(s, pc->sockaddr, pc->socklen);
-
+    // 连接错误，返回NGX_DECLINED需要再次发起连接
     if (rc == -1) {
         err = ngx_socket_errno;
 

@@ -133,12 +133,12 @@ typedef ngx_int_t (*ngx_http_phase_handler_pt)(ngx_http_request_t *r,
 struct ngx_http_phase_handler_s {
     ngx_http_phase_handler_pt  checker;
     ngx_http_handler_pt        handler;
-    ngx_uint_t                 next;
+    ngx_uint_t                 next; // 指向下一个phase的首个handler
 };
 
 
 typedef struct {
-    ngx_http_phase_handler_t  *handlers;
+    ngx_http_phase_handler_t  *handlers; // 按执行顺序存储所有handlers
     ngx_uint_t                 server_rewrite_index;
     ngx_uint_t                 location_rewrite_index;
 } ngx_http_phase_engine_t;
@@ -150,11 +150,13 @@ typedef struct {
 
 
 typedef struct {
+    // server{} location{} 配置树
+    // 解析到的所有 server 指令
     ngx_array_t                servers;         /* ngx_http_core_srv_conf_t */
 
     ngx_http_phase_engine_t    phase_engine;
 
-    ngx_hash_t                 headers_in_hash;
+    ngx_hash_t                 headers_in_hash; // 请求头哈希回调，ngx_http_init_headers_in_hash初始化
 
     ngx_hash_t                 variables_hash;
 
@@ -181,7 +183,7 @@ typedef struct {
     ngx_array_t                 server_names;
 
     /* server ctx */
-    ngx_http_conf_ctx_t        *ctx;
+    ngx_http_conf_ctx_t        *ctx; // 每个server{}都有http_conf
 
     u_char                     *file_name;
     ngx_uint_t                  line;
@@ -192,7 +194,7 @@ typedef struct {
     size_t                      request_pool_size;
     size_t                      client_header_buffer_size;
 
-    ngx_bufs_t                  large_client_header_buffers;
+    ngx_bufs_t                  large_client_header_buffers; // 申请存储client headers的最大buf数
 
     ngx_msec_t                  client_header_timeout;
 
@@ -323,12 +325,12 @@ struct ngx_http_core_loc_conf_s {
 #endif
 
     /* pointer to the modules' loc_conf */
-    void        **loc_conf;
+    void        **loc_conf; // 所属层级的所有module的loc_conf
 
     uint32_t      limit_except;
     void        **limit_except_loc_conf;
 
-    ngx_http_handler_pt  handler;
+    ngx_http_handler_pt  handler; // location 请求处理
 
     /* location name length for inclusive location with inherited alias */
     size_t        alias;
@@ -348,9 +350,9 @@ struct ngx_http_core_loc_conf_s {
 
     size_t        client_body_buffer_size; /* client_body_buffer_size */
     size_t        send_lowat;              /* send_lowat */
-    size_t        postpone_output;         /* postpone_output */
-    size_t        limit_rate;              /* limit_rate */
-    size_t        limit_rate_after;        /* limit_rate_after */
+    size_t        postpone_output;         /* postpone_output 缓存累计到阀值后写入socket */
+    size_t        limit_rate;              /* limit_rate 限速大小 */
+    size_t        limit_rate_after;        /* limit_rate_after 发送字节大小达到阀值后才开始限速 */
     size_t        sendfile_max_chunk;      /* sendfile_max_chunk */
     size_t        read_ahead;              /* read_ahead */
     size_t        subrequest_output_buffer_size;

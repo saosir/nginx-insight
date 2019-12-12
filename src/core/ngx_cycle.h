@@ -37,7 +37,7 @@ struct ngx_shm_zone_s {
 
 
 struct ngx_cycle_s {
-    void                  ****conf_ctx;
+    void                  ****conf_ctx; // 所有模块的配置上下文
     ngx_pool_t               *pool;
 
     ngx_log_t                *log;
@@ -46,10 +46,10 @@ struct ngx_cycle_s {
     ngx_uint_t                log_use_stderr;  /* unsigned  log_use_stderr:1; */
 
     ngx_connection_t        **files;
-    ngx_connection_t         *free_connections;
-    ngx_uint_t                free_connection_n;
+    ngx_connection_t         *free_connections; // 初始指向 connections
+    ngx_uint_t                free_connection_n; // 初始等于 connection_n
 
-    ngx_module_t            **modules;
+    ngx_module_t            **modules; // 指向所有模块，ngx_cycle_modules 中分配初始化
     ngx_uint_t                modules_n;
     ngx_uint_t                modules_used;    /* unsigned  modules_used:1; */
 
@@ -66,11 +66,11 @@ struct ngx_cycle_s {
     ngx_list_t                open_files;
     ngx_list_t                shared_memory;
 
-    ngx_uint_t                connection_n;
+    ngx_uint_t                connection_n; // 最大连接数
     ngx_uint_t                files_n;
 
-    ngx_connection_t         *connections;
-    ngx_event_t              *read_events;
+    ngx_connection_t         *connections; // 预先分配连接槽
+    ngx_event_t              *read_events; // 预先分配的读写事件槽
     ngx_event_t              *write_events;
 
     ngx_cycle_t              *old_cycle;
@@ -91,7 +91,7 @@ typedef struct {
     ngx_msec_t                timer_resolution;
     ngx_msec_t                shutdown_timeout;
 
-    ngx_int_t                 worker_processes;
+    ngx_int_t                 worker_processes; // worker进程数
     ngx_int_t                 debug_points;
 
     ngx_int_t                 rlimit_nofile;

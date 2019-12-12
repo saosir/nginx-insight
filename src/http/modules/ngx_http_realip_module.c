@@ -56,21 +56,21 @@ static ngx_int_t ngx_http_realip_remote_port_variable(ngx_http_request_t *r,
 
 
 static ngx_command_t  ngx_http_realip_commands[] = {
-
+    // 信任的代理服务器
     { ngx_string("set_real_ip_from"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_realip_from,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
-
+    // 真实ip存储的http头部
     { ngx_string("real_ip_header"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_realip,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
-
+    // 是否递剔除代理ip
     { ngx_string("real_ip_recursive"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_FLAG,
       ngx_conf_set_flag_slot,
@@ -191,7 +191,7 @@ ngx_http_realip_handler(ngx_http_request_t *r)
         break;
 
     default: /* NGX_HTTP_REALIP_HEADER */
-
+        // 自定义头部
         part = &r->headers_in.headers.part;
         header = part->elts;
 
@@ -226,7 +226,7 @@ ngx_http_realip_handler(ngx_http_request_t *r)
     }
 
 found:
-
+    // 会修改r->connection的ip地址
     c = r->connection;
 
     addr.sockaddr = c->sockaddr;
@@ -282,12 +282,12 @@ ngx_http_realip_set_addr(ngx_http_request_t *r, ngx_addr_t *addr)
 
     cln->handler = ngx_http_realip_cleanup;
     ngx_http_set_ctx(r, ctx, ngx_http_realip_module);
-
+    // 保存原地址
     ctx->connection = c;
     ctx->sockaddr = c->sockaddr;
     ctx->socklen = c->socklen;
     ctx->addr_text = c->addr_text;
-
+    // 更新为 realip
     c->sockaddr = addr->sockaddr;
     c->socklen = addr->socklen;
     c->addr_text.len = len;

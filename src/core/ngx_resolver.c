@@ -451,7 +451,7 @@ ngx_resolve_name(ngx_resolver_ctx_t *ctx)
         }
 
         /* lock name mutex */
-
+        // dns查询解析域名
         rc = ngx_resolve_name_locked(r, ctx, &name);
 
         ngx_resolver_free(r, name.data);

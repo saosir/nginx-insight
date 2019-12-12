@@ -179,7 +179,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_list_t                        headers;
+    ngx_list_t                        headers; //解析后得到的所有http header
 
     ngx_table_elt_t                  *host;
     ngx_table_elt_t                  *connection;
@@ -196,7 +196,7 @@ typedef struct {
     ngx_table_elt_t                  *range;
     ngx_table_elt_t                  *if_range;
 
-    ngx_table_elt_t                  *transfer_encoding;
+    ngx_table_elt_t                  *transfer_encoding; // 可能为trunked编码
     ngx_table_elt_t                  *te;
     ngx_table_elt_t                  *expect;
     ngx_table_elt_t                  *upgrade;
@@ -293,14 +293,14 @@ typedef void (*ngx_http_client_body_handler_pt)(ngx_http_request_t *r);
 
 typedef struct {
     ngx_temp_file_t                  *temp_file;
-    ngx_chain_t                      *bufs;
-    ngx_buf_t                        *buf;
-    off_t                             rest;
+    ngx_chain_t                      *bufs; // body的缓存块链表
+    ngx_buf_t                        *buf;  // body的缓存，大小与client_body_buffer_size相关
+    off_t                             rest; // 剩余需要读取字节
     off_t                             received;
     ngx_chain_t                      *free;
-    ngx_chain_t                      *busy;
+    ngx_chain_t                      *busy; // 正在读取的body内容
     ngx_http_chunked_t               *chunked;
-    ngx_http_client_body_handler_pt   post_handler;
+    ngx_http_client_body_handler_pt   post_handler; // 读取body完成后执行
 } ngx_http_request_body_t;
 
 
@@ -317,10 +317,10 @@ typedef struct {
 #endif
 #endif
 
-    ngx_chain_t                      *busy;
+    ngx_chain_t                      *busy; // 已分配出去的buf
     ngx_int_t                         nbusy;
 
-    ngx_chain_t                      *free;
+    ngx_chain_t                      *free; // 空闲的buf
 
     unsigned                          ssl:1;
     unsigned                          proxy_protocol:1;
@@ -376,7 +376,7 @@ struct ngx_http_request_s {
     void                            **ctx;
     void                            **main_conf;
     void                            **srv_conf;
-    void                            **loc_conf;
+    void                            **loc_conf; // locatoin所在层级各个模块配置
 
     ngx_http_event_handler_pt         read_event_handler;
     ngx_http_event_handler_pt         write_event_handler;
@@ -385,14 +385,14 @@ struct ngx_http_request_s {
     ngx_http_cache_t                 *cache;
 #endif
 
-    ngx_http_upstream_t              *upstream;
+    ngx_http_upstream_t              *upstream; // 处理请求的upstream
     ngx_array_t                      *upstream_states;
                                          /* of ngx_http_upstream_state_t */
 
     ngx_pool_t                       *pool;
     ngx_buf_t                        *header_in;
 
-    ngx_http_headers_in_t             headers_in;
+    ngx_http_headers_in_t             headers_in; // 接收的http headers，命中ngx_http_headers_in回调会设置对应的字段
     ngx_http_headers_out_t            headers_out;
 
     ngx_http_request_body_t          *request_body;
@@ -401,10 +401,10 @@ struct ngx_http_request_s {
     time_t                            start_sec;
     ngx_msec_t                        start_msec;
 
-    ngx_uint_t                        method;
+    ngx_uint_t                        method; // 请求方法
     ngx_uint_t                        http_version;
 
-    ngx_str_t                         request_line;
+    ngx_str_t                         request_line; // 请求第一行
     ngx_str_t                         uri;
     ngx_str_t                         args;
     ngx_str_t                         exten;
@@ -439,7 +439,7 @@ struct ngx_http_request_s {
     /* used to learn the Apache compatible response length without a header */
     size_t                            header_size;
 
-    off_t                             request_length;
+    off_t                             request_length; // 已读取长度
 
     ngx_uint_t                        err_status;
 
@@ -448,7 +448,7 @@ struct ngx_http_request_s {
 
     ngx_http_log_handler_pt           log_handler;
 
-    ngx_http_cleanup_t               *cleanup;
+    ngx_http_cleanup_t               *cleanup; // upstream资源清理链表
 
     unsigned                          count:16;
     unsigned                          subrequests:8;
@@ -479,12 +479,12 @@ struct ngx_http_request_s {
     unsigned                          uri_changes:4;
 
     unsigned                          request_body_in_single_buf:1;
-    unsigned                          request_body_in_file_only:1;
+    unsigned                          request_body_in_file_only:1; // body需要缓存到文件
     unsigned                          request_body_in_persistent_file:1;
     unsigned                          request_body_in_clean_file:1;
     unsigned                          request_body_file_group_access:1;
     unsigned                          request_body_file_log_level:3;
-    unsigned                          request_body_no_buffering:1;
+    unsigned                          request_body_no_buffering:1; // 不将body缓存到文件
 
     unsigned                          subrequest_in_memory:1;
     unsigned                          waited:1;
@@ -533,7 +533,7 @@ struct ngx_http_request_s {
     unsigned                          post_action:1;
     unsigned                          request_complete:1;
     unsigned                          request_output:1;
-    unsigned                          header_sent:1;
+    unsigned                          header_sent:1; // 已发送upstream的header给client
     unsigned                          expect_tested:1;
     unsigned                          root_tested:1;
     unsigned                          done:1;
@@ -578,6 +578,15 @@ struct ngx_http_request_s {
     u_char                           *uri_end;
     u_char                           *uri_ext;
     u_char                           *args_start;
+    /*
+     下面几个参数指明请求行位置
+             method_end
+                  |
+                GET /test HTTP/1.1
+                | |     |
+    request_start |     request_end
+                  method_end
+    */
     u_char                           *request_start;
     u_char                           *request_end;
     u_char                           *method_end;

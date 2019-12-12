@@ -220,8 +220,8 @@
 
 
 struct ngx_module_s {
-    ngx_uint_t            ctx_index;
-    ngx_uint_t            index;
+    ngx_uint_t            ctx_index; // 二级模块配置上下文下标，如NGX_HTTP_MODULE
+    ngx_uint_t            index; // conf->ctx下标
 
     char                 *name;
 
@@ -230,17 +230,18 @@ struct ngx_module_s {
 
     ngx_uint_t            version;
     const char           *signature;
-
+	// 上面初始化时候使用 NGX_MODULE_V1 替代
     void                 *ctx;
     ngx_command_t        *commands;
     ngx_uint_t            type;
 
     ngx_int_t           (*init_master)(ngx_log_t *log);
 
-    ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
-
-    ngx_int_t           (*init_process)(ngx_cycle_t *cycle);
-    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle);
+    ngx_int_t           (*init_module)(ngx_cycle_t *cycle); // 读取解析完配置后调用 ngx_init_cycle
+    // worker模式：fork子进程后在ngx_worker_process_init中调用
+    // thread模式：创建子线程后在ngx_worker_thread中调用
+    ngx_int_t           (*init_process)(ngx_cycle_t *cycle); 
+    ngx_int_t           (*init_thread)(ngx_cycle_t *cycle); // 未使用
     void                (*exit_thread)(ngx_cycle_t *cycle);
     void                (*exit_process)(ngx_cycle_t *cycle);
 

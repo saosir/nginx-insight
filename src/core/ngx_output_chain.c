@@ -41,7 +41,7 @@ static ngx_int_t ngx_output_chain_get_buf(ngx_output_chain_ctx_t *ctx,
     off_t bsize);
 static ngx_int_t ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx);
 
-
+// 将in放入ctx->busy，然后调用ctx->output_filter发送数据
 ngx_int_t
 ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 {
@@ -49,6 +49,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
     ngx_int_t     rc, last;
     ngx_chain_t  *cl, *out, **last_out;
 
+    // 待发送数据量较小，直接调用ctx->output_filter
     if (ctx->in == NULL && ctx->busy == NULL
 #if (NGX_HAVE_FILE_AIO || NGX_THREADS)
         && !ctx->aio
@@ -83,6 +84,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
         }
     }
 
+    // 将输出内容放入out链表
     out = NULL;
     last_out = &out;
     last = NGX_NONE;
@@ -146,6 +148,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 return NGX_ERROR;
             }
 
+            // 可直接将ctx->in->buf放入output_chain
             if (ngx_output_chain_as_is(ctx, ctx->in->buf)) {
 
                 /* move the chain link to the output chain */
@@ -159,7 +162,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 
                 continue;
             }
-
+            // 确保ctx->buf非NULL
             if (ctx->buf == NULL) {
 
                 rc = ngx_output_chain_align_file_buf(ctx, bsize);
@@ -171,7 +174,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 if (rc != NGX_OK) {
 
                     if (ctx->free) {
-
+                        // 从空闲链表ctx->free获取buf到ctx->buf
                         /* get the free buf */
 
                         cl = ctx->free;
@@ -189,7 +192,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                     }
                 }
             }
-
+            // 将ctx->in->buf放入out
             rc = ngx_output_chain_copy_buf(ctx);
 
             if (rc == NGX_ERROR) {
@@ -214,7 +217,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
             if (cl == NULL) {
                 return NGX_ERROR;
             }
-
+            // 连接到last_out尾部
             cl->buf = ctx->buf;
             cl->next = NULL;
             *last_out = cl;
@@ -230,7 +233,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 
             return last;
         }
-
+        // 实际发送
         last = ctx->output_filter(ctx->filter_ctx, out);
 
         if (last == NGX_ERROR || last == NGX_DONE) {
@@ -239,11 +242,11 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 
         ngx_chain_update_chains(ctx->pool, &ctx->free, &ctx->busy, &out,
                                 ctx->tag);
-        last_out = &out;
+        last_out = &out; // 重新开始
     }
 }
 
-
+// 是否可以直接输出到output_chain
 static ngx_inline ngx_int_t
 ngx_output_chain_as_is(ngx_output_chain_ctx_t *ctx, ngx_buf_t *buf)
 {
@@ -322,7 +325,7 @@ ngx_output_chain_aio_setup(ngx_output_chain_ctx_t *ctx, ngx_file_t *file)
 
 #endif
 
-
+// 将in连接到chain尾部
 static ngx_int_t
 ngx_output_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain,
     ngx_chain_t *in)
@@ -332,6 +335,7 @@ ngx_output_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain,
     ngx_buf_t    *b, *buf;
 #endif
 
+    // 指向尾部
     ll = chain;
 
     for (cl = *chain; cl; cl = cl->next) {
@@ -441,7 +445,7 @@ ngx_output_chain_align_file_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
     return NGX_OK;
 }
 
-
+// 申请一个buf到ctx->buf
 static ngx_int_t
 ngx_output_chain_get_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
 {
@@ -517,7 +521,7 @@ ngx_output_chain_get_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
     return NGX_OK;
 }
 
-
+// 将ctx->in->buf 拷贝到 ctx->buf
 static ngx_int_t
 ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
 {

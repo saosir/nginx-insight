@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-
+// 处于最后执行的filter
 static ngx_int_t ngx_http_write_filter_init(ngx_conf_t *cf);
 
 
@@ -132,7 +132,7 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     /* add the new chain to the existent one */
-
+    // 将in链表连接到r->out尾部
     for (ln = in; ln; ln = ln->next) {
         cl = ngx_alloc_chain_link(r->pool);
         if (cl == NULL) {
@@ -250,13 +250,16 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
+    // 限速逻辑
     if (r->limit_rate) {
         if (r->limit_rate_after == 0) {
             r->limit_rate_after = clcf->limit_rate_after;
         }
 
+        // 理论上可发送的最大数据量小于已发送数据量，开始进行限速
+        // limit表示还能发送的字节数
         limit = (off_t) r->limit_rate * (ngx_time() - r->start_sec + 1)
-                - (c->sent - r->limit_rate_after);
+                - (c->sent - r->limit_rate_after); // 发送limit_rate_after字节后才开始限速
 
         if (limit <= 0) {
             c->write->delayed = 1;
@@ -293,6 +296,7 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
+    // 瞬间发送过多字节需要限速(不考虑limit)
     if (r->limit_rate) {
 
         nsent = c->sent;
@@ -327,12 +331,14 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)
         ngx_add_timer(c->write, 1);
     }
 
+    // 释放已发送数据节点
     for (cl = r->out; cl && cl != chain; /* void */) {
         ln = cl;
         cl = cl->next;
         ngx_free_chain(r->pool, ln);
     }
 
+    // 删除链表头部已发送节点
     r->out = chain;
 
     if (chain) {

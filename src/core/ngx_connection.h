@@ -122,12 +122,13 @@ typedef enum {
 
 
 struct ngx_connection_s {
-    void               *data;
+    void               *data; // 与连接关联的数据参数
+    // 事件通知函数
     ngx_event_t        *read;
     ngx_event_t        *write;
 
     ngx_socket_t        fd;
-
+    // 底层接收发送字节流函数，recv/send取决event模块，一般在read或者write中调用
     ngx_recv_pt         recv;
     ngx_send_pt         send;
     ngx_recv_chain_pt   recv_chain;
@@ -135,7 +136,7 @@ struct ngx_connection_s {
 
     ngx_listening_t    *listening;
 
-    off_t               sent;
+    off_t               sent; // 已发送字节大小
 
     ngx_log_t          *log;
 
@@ -159,11 +160,11 @@ struct ngx_connection_s {
     struct sockaddr    *local_sockaddr;
     socklen_t           local_socklen;
 
-    ngx_buf_t          *buffer;
+    ngx_buf_t          *buffer; // 接收数据缓存
 
     ngx_queue_t         queue;
 
-    ngx_atomic_uint_t   number;
+    ngx_atomic_uint_t   number; // 连接记号，单调递增
 
     ngx_uint_t          requests;
 
@@ -177,7 +178,7 @@ struct ngx_connection_s {
 
     unsigned            idle:1;
     unsigned            reusable:1;
-    unsigned            close:1;
+    unsigned            close:1; // 连接是否已关闭
     unsigned            shared:1;
 
     unsigned            sendfile:1;

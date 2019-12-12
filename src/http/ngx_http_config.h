@@ -25,17 +25,20 @@ typedef struct {
     ngx_int_t   (*preconfiguration)(ngx_conf_t *cf);
     ngx_int_t   (*postconfiguration)(ngx_conf_t *cf);
 
+    // http{} 配置上下文
     void       *(*create_main_conf)(ngx_conf_t *cf);
     char       *(*init_main_conf)(ngx_conf_t *cf, void *conf);
 
+    // server{} 配置上下文
     void       *(*create_srv_conf)(ngx_conf_t *cf);
     char       *(*merge_srv_conf)(ngx_conf_t *cf, void *prev, void *conf);
 
+    // location 配置上下文
     void       *(*create_loc_conf)(ngx_conf_t *cf);
     char       *(*merge_loc_conf)(ngx_conf_t *cf, void *prev, void *conf);
 } ngx_http_module_t;
 
-
+// 解析配置文件的位置
 #define NGX_HTTP_MODULE           0x50545448   /* "HTTP" */
 
 #define NGX_HTTP_MAIN_CONF        0x02000000

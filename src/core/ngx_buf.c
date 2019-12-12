@@ -122,14 +122,14 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     return chain;
 }
 
-
+// 将in拷贝到chain尾部（不是真正的拷贝全部内存，仅仅复制内存引用）
 ngx_int_t
 ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 {
     ngx_chain_t  *cl, **ll;
 
     ll = chain;
-
+    // ll 指向尾部
     for (cl = *chain; cl; cl = cl->next) {
         ll = &cl->next;
     }
@@ -181,12 +181,14 @@ ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
 }
 
 
+// 将out连接到busy尾部，并清空busy中无用节点，放入free
 void
 ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
     ngx_chain_t **out, ngx_buf_tag_t tag)
 {
     ngx_chain_t  *cl;
 
+    // 将out拼接到busy链表尾部
     if (*out) {
         if (*busy == NULL) {
             *busy = *out;
@@ -200,19 +202,21 @@ ngx_chain_update_chains(ngx_pool_t *p, ngx_chain_t **free, ngx_chain_t **busy,
         *out = NULL;
     }
 
+    // 释放busy链表中内容为空的节点
     while (*busy) {
         cl = *busy;
 
         if (ngx_buf_size(cl->buf) != 0) {
             break;
         }
-
+        // 大小为空且tag不一样，释放
         if (cl->buf->tag != tag) {
             *busy = cl->next;
             ngx_free_chain(p, cl);
             continue;
         }
 
+        // 重置可用内存，并放入free链表
         cl->buf->pos = cl->buf->start;
         cl->buf->last = cl->buf->start;
 

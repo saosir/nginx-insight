@@ -18,7 +18,7 @@ static ngx_int_t ngx_event_pipe_write_chain_to_temp_file(ngx_event_pipe_t *p);
 static ngx_inline void ngx_event_pipe_remove_shadow_links(ngx_buf_t *buf);
 static ngx_int_t ngx_event_pipe_drain_chains(ngx_event_pipe_t *p);
 
-
+// 读取upstream,写入downstream
 ngx_int_t
 ngx_event_pipe(ngx_event_pipe_t *p, ngx_int_t do_write)
 {
@@ -493,7 +493,7 @@ ngx_event_pipe_read_upstream(ngx_event_pipe_t *p)
     return NGX_OK;
 }
 
-
+// 向p->output_filter输出
 static ngx_int_t
 ngx_event_pipe_write_to_downstream(ngx_event_pipe_t *p)
 {
@@ -622,7 +622,7 @@ ngx_event_pipe_write_to_downstream(ngx_event_pipe_t *p)
         flush = 0;
         ll = NULL;
         prev_last_shadow = 1;
-
+        // 将 p->out 和 p->in 连接成链表放入out
         for ( ;; ) {
             if (p->out) {
                 cl = p->out;
@@ -686,9 +686,9 @@ ngx_event_pipe_write_to_downstream(ngx_event_pipe_t *p)
                 return NGX_BUSY;
             }
         }
-
+        // 调用output_filter输出
         rc = p->output_filter(p->output_ctx, out);
-
+        // 将out放入busy
         ngx_chain_update_chains(p->pool, &p->free, &p->busy, &out, p->tag);
 
         if (rc == NGX_ERROR) {
@@ -1068,7 +1068,7 @@ ngx_event_pipe_add_free_buf(ngx_event_pipe_t *p, ngx_buf_t *b)
     return NGX_OK;
 }
 
-
+// 释放p的busy/out/in缓存
 static ngx_int_t
 ngx_event_pipe_drain_chains(ngx_event_pipe_t *p)
 {

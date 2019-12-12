@@ -85,9 +85,9 @@ typedef ngx_int_t (*ngx_http_upstream_init_peer_pt)(ngx_http_request_t *r,
 
 
 typedef struct {
-    ngx_http_upstream_init_pt        init_upstream;
-    ngx_http_upstream_init_peer_pt   init;
-    void                            *data;
+    ngx_http_upstream_init_pt        init_upstream; // upstream {} 中指定的负责均衡算法
+    ngx_http_upstream_init_peer_pt   init; // 每一个请求过来都会调用（upstream为单个或者proxy_pass为域名不需要）
+    void                            *data; // 后端peer信息,参考ngx_http_upstream_init_round_robin
 } ngx_http_upstream_peer_t;
 
 
@@ -119,10 +119,10 @@ typedef struct {
 
 
 struct ngx_http_upstream_srv_conf_s {
-    ngx_http_upstream_peer_t         peer;
+    ngx_http_upstream_peer_t         peer; // upstream配置
     void                           **srv_conf;
 
-    ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */
+    ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */ // upstream { server } 命令
 
     ngx_uint_t                       flags;
     ngx_str_t                        host;
@@ -174,8 +174,8 @@ typedef struct {
     ngx_uint_t                       next_upstream_tries;
     ngx_flag_t                       buffering;
     ngx_flag_t                       request_buffering;
-    ngx_flag_t                       pass_request_headers;
-    ngx_flag_t                       pass_request_body;
+    ngx_flag_t                       pass_request_headers; // 是否传递client 的 header
+    ngx_flag_t                       pass_request_body; // 是否传递client 的 body
 
     ngx_flag_t                       ignore_client_abort;
     ngx_flag_t                       intercept_errors;
@@ -320,16 +320,16 @@ struct ngx_http_upstream_s {
     ngx_http_upstream_handler_pt     read_event_handler;
     ngx_http_upstream_handler_pt     write_event_handler;
 
-    ngx_peer_connection_t            peer;
+    ngx_peer_connection_t            peer; // 管理对端连接，包括upstream负载均衡算法
 
     ngx_event_pipe_t                *pipe;
 
-    ngx_chain_t                     *request_bufs;
+    ngx_chain_t                     *request_bufs; // 发送给upstream的内存
 
     ngx_output_chain_ctx_t           output;
     ngx_chain_writer_ctx_t           writer;
 
-    ngx_http_upstream_conf_t        *conf;
+    ngx_http_upstream_conf_t        *conf; // 配置文件设置upstream配置项
     ngx_http_upstream_srv_conf_t    *upstream;
 #if (NGX_HTTP_CACHE)
     ngx_array_t                     *caches;
@@ -341,7 +341,7 @@ struct ngx_http_upstream_s {
 
     ngx_buf_t                        from_client;
 
-    ngx_buf_t                        buffer;
+    ngx_buf_t                        buffer; // 存储来自upstream的response
     off_t                            length;
 
     ngx_chain_t                     *out_bufs;
@@ -392,8 +392,8 @@ struct ngx_http_upstream_s {
     unsigned                         keepalive:1;
     unsigned                         upgrade:1;
 
-    unsigned                         request_sent:1;
-    unsigned                         request_body_sent:1;
+    unsigned                         request_sent:1; // 是否开始发送请求到upstream
+    unsigned                         request_body_sent:1; // 发送body完成
     unsigned                         request_body_blocked:1;
     unsigned                         header_sent:1;
 };

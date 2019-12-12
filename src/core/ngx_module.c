@@ -10,7 +10,7 @@
 #include <ngx_core.h>
 
 
-#define NGX_MAX_DYNAMIC_MODULES  128
+#define NGX_MAX_DYNAMIC_MODULES  128 // 最多允许动态模块数
 
 
 static ngx_uint_t ngx_module_index(ngx_cycle_t *cycle);
@@ -18,10 +18,10 @@ static ngx_uint_t ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type,
     ngx_uint_t index);
 
 
-ngx_uint_t         ngx_max_module;
-static ngx_uint_t  ngx_modules_n;
+ngx_uint_t         ngx_max_module; // 最大模块限制
+static ngx_uint_t  ngx_modules_n; // 静态模块数
 
-
+// 预先处理所有模块
 ngx_int_t
 ngx_preinit_modules(void)
 {
@@ -39,6 +39,7 @@ ngx_preinit_modules(void)
 }
 
 
+// 将全局变量ngx_modules复制进cycle->modules
 ngx_int_t
 ngx_cycle_modules(ngx_cycle_t *cycle)
 {
@@ -61,7 +62,7 @@ ngx_cycle_modules(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+// 调用module的init函数
 ngx_int_t
 ngx_init_modules(ngx_cycle_t *cycle)
 {
@@ -93,7 +94,7 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
     for (i = 0; cycle->modules[i]; i++) {
         module = cycle->modules[i];
 
-        if (module->type != type) {
+        if (module->type != type) { // 过滤特定模块
             continue;
         }
 
@@ -114,7 +115,7 @@ ngx_count_modules(ngx_cycle_t *cycle, ngx_uint_t type)
 
         /* search for some free index */
 
-        module->ctx_index = ngx_module_ctx_index(cycle, type, next);
+        module->ctx_index = ngx_module_ctx_index(cycle, type, next); // 设置好二级模块下标
 
         if (module->ctx_index > max) {
             max = module->ctx_index;

@@ -78,7 +78,7 @@ struct ngx_command_s {
     ngx_str_t             name;
     ngx_uint_t            type;
     char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-    ngx_uint_t            conf;
+    ngx_uint_t            conf; // 二级下标
     ngx_uint_t            offset;
     void                 *post;
 };
@@ -123,9 +123,9 @@ struct ngx_conf_s {
     ngx_conf_file_t      *conf_file;
     ngx_log_t            *log;
 
-    void                 *ctx;
-    ngx_uint_t            module_type;
-    ngx_uint_t            cmd_type;
+    void                 *ctx; // 当前解析模块的上下文
+    ngx_uint_t            module_type; // 当前配置解析的模块类型，用于区分不同模块命令如http{} upstream{}
+    ngx_uint_t            cmd_type; // 当前解析的命令类型，用于区分模块下的子块命令如 http{ server {} }
 
     ngx_conf_handler_pt   handler;
     void                 *handler_conf;

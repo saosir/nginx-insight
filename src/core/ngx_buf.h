@@ -18,8 +18,8 @@ typedef void *            ngx_buf_tag_t;
 typedef struct ngx_buf_s  ngx_buf_t;
 
 struct ngx_buf_s {
-    u_char          *pos;
-    u_char          *last;
+    u_char          *pos; // 操作位置标记，消费n字节 pos += n
+    u_char          *last; // 有效内存末端，有新数据写入 last+=n
     off_t            file_pos;
     off_t            file_last;
 
@@ -46,7 +46,7 @@ struct ngx_buf_s {
     unsigned         in_file:1;
     unsigned         flush:1;
     unsigned         sync:1;
-    unsigned         last_buf:1;
+    unsigned         last_buf:1; // 放在链表中，表示是否是最后一块
     unsigned         last_in_chain:1;
 
     unsigned         last_shadow:1;
@@ -76,10 +76,10 @@ typedef void (*ngx_output_chain_aio_pt)(ngx_output_chain_ctx_t *ctx,
     ngx_file_t *file);
 
 struct ngx_output_chain_ctx_s {
-    ngx_buf_t                   *buf;
-    ngx_chain_t                 *in;
+    ngx_buf_t                   *buf; // 当前处理数据
+    ngx_chain_t                 *in; // 待处理，应用层输入数据先放此处，处理完成放入busy
     ngx_chain_t                 *free;
-    ngx_chain_t                 *busy;
+    ngx_chain_t                 *busy; // 待发送缓存区，由io层读取并发送
 
     unsigned                     sendfile:1;
     unsigned                     directio:1;

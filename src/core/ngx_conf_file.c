@@ -58,7 +58,7 @@ static ngx_uint_t argument_number[] = {
     NGX_CONF_TAKE7
 };
 
-
+// 解析命令行配置
 char *
 ngx_conf_param(ngx_conf_t *cf)
 {
@@ -153,7 +153,7 @@ ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
     return NGX_OK;
 }
 
-
+// 解析配置文件，解析到配置块会递归调用
 char *
 ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 {
@@ -289,7 +289,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         /* rc == NGX_OK || rc == NGX_CONF_BLOCK_START */
 
-        if (cf->handler) {
+        if (cf->handler) { // 部分模块自己实现命令回调
 
             /*
              * the custom handler, i.e., that is used in the http's
@@ -364,7 +364,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
     name = cf->args->elts;
 
     found = 0;
-
+    // 遍历所有模块的所有命令，查找命令回调
     for (i = 0; cf->cycle->modules[i]; i++) {
 
         cmd = cf->cycle->modules[i]->commands;
@@ -411,7 +411,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             }
 
             /* is the directive's argument count right ? */
-
+            // 命令参数处理
             if (!(cmd->type & NGX_CONF_ANY)) {
 
                 if (cmd->type & NGX_CONF_FLAG) {
@@ -447,16 +447,22 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             conf = NULL;
 
             if (cmd->type & NGX_DIRECT_CONF) {
-                conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index];
+                // nginx.c中的ngx_core_module配置都是NGX_DIRECT_CONF
+                conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index]; //非指针
 
             } else if (cmd->type & NGX_MAIN_CONF) {
-                conf = &(((void **) cf->ctx)[cf->cycle->modules[i]->index]);
+                // NGX_MAIN_CONF 指令可能会修改模块上下文 core模块直接忽略
+                conf = &(((void **) cf->ctx)[cf->cycle->modules[i]->index]); // 指针，有可能修改指向的指针内容
 
-            } else if (cf->ctx) {
+            } else if (cf->ctx) { // 因为可以递归调用，解析到http{} 或者 http.server {}时候 ctx 变为 ngx_http_conf_ctx_t
+                // 普通配置指令
+                // 如果为http模块:
+                // cf->ctx 为 ngx_http_conf_ctx_t
+                // cmd->conf可能为NGX_HTTP_LOC_CONF_OFFSET，NGX_HTTP_MAIN_CONF_OFFSET，NGX_HTTP_SRV_CONF_OFFSET
                 confp = *(void **) ((char *) cf->ctx + cmd->conf);
 
                 if (confp) {
-                    conf = confp[cf->cycle->modules[i]->ctx_index];
+                    conf = confp[cf->cycle->modules[i]->ctx_index]; // ctx_index http module index
                 }
             }
 
@@ -529,9 +535,9 @@ ngx_conf_read_token(ngx_conf_t *cf)
     file_size = ngx_file_size(&cf->conf_file->file.info);
 
     for ( ;; ) {
-
+        // 读取的内容不够使用
         if (b->pos >= b->last) {
-
+            // 配置读取完毕
             if (cf->conf_file->file.offset >= file_size) {
 
                 if (cf->args->nelts > 0 || !last_space) {
@@ -583,7 +589,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             size = (ssize_t) (file_size - cf->conf_file->file.offset);
 
             if (size > b->end - (b->start + len)) {
-                size = b->end - (b->start + len);
+                size = b->end - (b->start + len); // 剩余可用内存
             }
 
             n = ngx_read_file(&cf->conf_file->file, b->start + len, size,

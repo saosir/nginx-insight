@@ -545,7 +545,11 @@ ngx_http_upstream_init(ngx_http_request_t *r)
     ngx_http_upstream_init_request(r);
 }
 
-
+// 读取body后执行的post_handler
+// 创建发送往upstream的请求
+// 创建初始化upstream
+// 选取后端peer，发起连接
+// 
 static void
 ngx_http_upstream_init_request(ngx_http_request_t *r)
 {
@@ -618,10 +622,12 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
         r->write_event_handler = ngx_http_upstream_wr_check_broken_connection;
     }
 
+    // 暂时将client的body放在u->request_bufs
     if (r->request_body) {
         u->request_bufs = r->request_body->bufs;
     }
 
+    // 创建发送往upstream的请求
     if (u->create_request(r) != NGX_OK) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
@@ -682,11 +688,11 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
     u->cleanup = &cln->handler;
 
     if (u->resolved == NULL) {
-
+        // 需要调用 uscf->peer.init 负责均衡算法
         uscf = u->conf->upstream;
 
     } else {
-
+        // upstream是域名或者ip地址且已解析过，直接使用round_robin算法负载均衡域名后的ip列表
 #if (NGX_HTTP_SSL)
         u->ssl_name = u->resolved->host;
 #endif
@@ -697,6 +703,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
 
         uscfp = umcf->upstreams.elts;
 
+        // 精确匹配查找upstream
         for (i = 0; i < umcf->upstreams.nelts; i++) {
 
             uscf = uscfp[i];
@@ -766,7 +773,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
         ctx->timeout = clcf->resolver_timeout;
 
         u->resolved->ctx = ctx;
-
+        // dns解析查询域名
         if (ngx_resolve_name(ctx) != NGX_OK) {
             u->resolved->ctx = NULL;
             ngx_http_upstream_finalize_request(r, u,
@@ -792,7 +799,7 @@ found:
 #if (NGX_HTTP_SSL)
     u->ssl_name = uscf->host;
 #endif
-
+    // 根据配置中upstream的负责均衡算法初始化
     if (uscf->peer.init(r, uscf) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -1500,7 +1507,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     }
 }
 
-
+// 开始与upstream建立连接
 static void
 ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
@@ -2037,7 +2044,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
         } else if (c->write->timer_set) {
             ngx_del_timer(c->write);
         }
-
+        // 写事件
         if (ngx_handle_write_event(c->write, u->conf->send_lowat) != NGX_OK) {
             ngx_http_upstream_finalize_request(r, u,
                                                NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -2171,7 +2178,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r,
             if (rc == NGX_ERROR) {
                 return NGX_ERROR;
             }
-
+            // 释放out链表
             while (out) {
                 ln = out;
                 out = out->next;
@@ -2282,7 +2289,7 @@ ngx_http_upstream_read_request_handler(ngx_http_request_t *r)
     ngx_http_upstream_send_request(r, u, 0);
 }
 
-
+// 读取来自upstream的响应header
 static void
 ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
@@ -2659,7 +2666,7 @@ ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
     return NGX_DECLINED;
 }
 
-
+// 直接调用 getsockopt(c->fd, SOL_SOCKET, SO_ERROR, (void *) &err, &len) 进行判断
 static ngx_int_t
 ngx_http_upstream_test_connect(ngx_connection_t *c)
 {
@@ -2898,7 +2905,7 @@ ngx_http_upstream_process_trailers(ngx_http_request_t *r,
     return NGX_OK;
 }
 
-
+// 接收完upstream的response后，开始返回response到client
 static void
 ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {
@@ -4127,7 +4134,7 @@ ngx_http_upstream_dummy_handler(ngx_http_request_t *r, ngx_http_upstream_t *u)
                    "http upstream dummy handler");
 }
 
-
+// 尝试连接下一个upstream
 static void
 ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
     ngx_uint_t ft_type)
@@ -4279,7 +4286,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
         ngx_close_connection(u->peer.connection);
         u->peer.connection = NULL;
     }
-
+    // 再次发起连接，重新选取后端peer
     ngx_http_upstream_connect(r, u);
 }
 
@@ -5729,8 +5736,9 @@ ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         return NGX_CONF_ERROR;
     }
 
+    // 备份
     http_ctx = cf->ctx;
-    ctx->main_conf = http_ctx->main_conf;
+    ctx->main_conf = http_ctx->main_conf; // 继承
 
     /* the upstream{}'s srv_conf */
 
@@ -5786,9 +5794,10 @@ ngx_http_upstream(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     /* parse inside upstream{} */
 
+    // 递归解析
     pcf = *cf;
     cf->ctx = ctx;
-    cf->cmd_type = NGX_HTTP_UPS_CONF;
+    cf->cmd_type = NGX_HTTP_UPS_CONF; // 解析的命令类型变为upstream，否则解析不到 upstream.server 指令
 
     rv = ngx_conf_parse(cf, NULL);
 
@@ -5985,10 +5994,11 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
         }
     }
 
+    // 是否匹配upstream
     umcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_upstream_module);
 
     uscfp = umcf->upstreams.elts;
-
+    // 查找已存在的upstream
     for (i = 0; i < umcf->upstreams.nelts; i++) {
 
         if (uscfp[i]->host.len != u->host.len
@@ -6434,6 +6444,7 @@ ngx_http_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
 
     for (i = 0; i < umcf->upstreams.nelts; i++) {
 
+        // 默认使用ngx_http_upstream_init_round_robin算法
         init = uscfp[i]->peer.init_upstream ? uscfp[i]->peer.init_upstream:
                                             ngx_http_upstream_init_round_robin;
 

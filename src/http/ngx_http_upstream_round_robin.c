@@ -26,7 +26,8 @@ static void ngx_http_upstream_empty_save_session(ngx_peer_connection_t *pc,
 
 #endif
 
-
+// 默认的负责均衡初始化算法，在ngx_http_upstream_init_main_conf调用
+// 将upstream.server解析到的peer串联链表
 ngx_int_t
 ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     ngx_http_upstream_srv_conf_t *us)
@@ -42,8 +43,8 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     if (us->servers) {
         server = us->servers->elts;
 
-        n = 0;
-        w = 0;
+        n = 0; // peer总数
+        w = 0; // 权重总和
 
         for (i = 0; i < us->servers->nelts; i++) {
             if (server[i].backup) {
@@ -78,6 +79,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
         peers->name = &us->host;
 
         n = 0;
+        // 所有peer串联成链表
         peerp = &peers->peer;
 
         for (i = 0; i < us->servers->nelts; i++) {
@@ -107,7 +109,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
         us->peer.data = peers;
 
         /* backup servers */
-
+        // 如果有backup节点放到peers->next
         n = 0;
         w = 0;
 
@@ -172,8 +174,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
 
         return NGX_OK;
     }
-
-
+    // 解析域名，得到的peer权重全部为1
     /* an upstream implicitly defined by proxy_pass, etc. */
 
     if (us->port == 0) {
@@ -239,7 +240,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     return NGX_OK;
 }
 
-
+// round_robin负载均衡 init
 ngx_int_t
 ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
     ngx_http_upstream_srv_conf_t *us)
@@ -269,7 +270,7 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
     }
 
     if (n <= 8 * sizeof(uintptr_t)) {
-        rrp->tried = &rrp->data;
+        rrp->tried = &rrp->data; // 小于32直接使用rrp->data，不再另外分配内存
         rrp->data = 0;
 
     } else {
@@ -294,7 +295,7 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
     return NGX_OK;
 }
 
-
+// round_robin负载均衡算法 create
 ngx_int_t
 ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
     ngx_http_upstream_resolved_t *ur)
@@ -308,6 +309,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
     ngx_http_upstream_rr_peers_t      *peers;
     ngx_http_upstream_rr_peer_data_t  *rrp;
 
+    // r->upstream->peer.data存储上下文信息
     rrp = r->upstream->peer.data;
 
     if (rrp == NULL) {
@@ -324,6 +326,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
         return NGX_ERROR;
     }
 
+    // 数组peer
     peer = ngx_pcalloc(r->pool, sizeof(ngx_http_upstream_rr_peer_t)
                                 * ur->naddrs);
     if (peer == NULL) {
@@ -334,7 +337,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
     peers->number = ur->naddrs;
     peers->name = &ur->host;
 
-    if (ur->sockaddr) {
+    if (ur->sockaddr) { // 只有一个
         peer[0].sockaddr = ur->sockaddr;
         peer[0].socklen = ur->socklen;
         peer[0].name = ur->name.data ? ur->name : ur->host;
@@ -347,6 +350,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
         peers->peer = peer;
 
     } else {
+        // 串联链表
         peerp = &peers->peer;
 
         for (i = 0; i < ur->naddrs; i++) {
@@ -392,6 +396,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
         rrp->data = 0;
 
     } else {
+        // 向上取整
         n = (rrp->peers->number + (8 * sizeof(uintptr_t) - 1))
                 / (8 * sizeof(uintptr_t));
 
@@ -412,7 +417,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
     return NGX_OK;
 }
 
-
+// round_robin负载均衡 get
 ngx_int_t
 ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
 {
@@ -471,13 +476,14 @@ ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data)
     return NGX_OK;
 
 failed:
-
+    // 使用backup servers
     if (peers->next) {
 
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, pc->log, 0, "backup servers");
 
         rrp->peers = peers->next;
 
+        // 清零bitmap用于backup servers 标记
         n = (rrp->peers->number + (8 * sizeof(uintptr_t) - 1))
                 / (8 * sizeof(uintptr_t));
 
@@ -503,7 +509,8 @@ failed:
     return NGX_BUSY;
 }
 
-
+// 参考 https://blog.csdn.net/zhangskd/article/details/50194069
+// 加权轮询
 static ngx_http_upstream_rr_peer_t *
 ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
 {
@@ -526,6 +533,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
          peer;
          peer = peer->next, i++)
     {
+        // bitmap计算位置
         n = i / (8 * sizeof(uintptr_t));
         m = (uintptr_t) 1 << i % (8 * sizeof(uintptr_t));
 
@@ -551,10 +559,11 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
         peer->current_weight += peer->effective_weight;
         total += peer->effective_weight;
 
+        // effective_weight小于weight情况，说明后端出错情况发生，逐步恢复effective_weight到weight
         if (peer->effective_weight < peer->weight) {
             peer->effective_weight++;
         }
-
+        // 选取最大的current_weight
         if (best == NULL || peer->current_weight > best->current_weight) {
             best = peer;
             p = i;
@@ -570,9 +579,10 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     n = p / (8 * sizeof(uintptr_t));
     m = (uintptr_t) 1 << p % (8 * sizeof(uintptr_t));
 
+    // 防止针对同一请求失败，再次选取此后端peer
     rrp->tried[n] |= m;
 
-    best->current_weight -= total;
+    best->current_weight -= total; // 将选取的peer->current_weight减去total
 
     if (now - best->checked > best->fail_timeout) {
         best->checked = now;
@@ -581,7 +591,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     return best;
 }
 
-
+// round_robin负载均衡 free
 void
 ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
     ngx_uint_t state)

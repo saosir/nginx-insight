@@ -182,9 +182,9 @@ ngx_module_t  ngx_core_module = {
 static ngx_uint_t   ngx_show_help;
 static ngx_uint_t   ngx_show_version;
 static ngx_uint_t   ngx_show_configure;
-static u_char      *ngx_prefix;
-static u_char      *ngx_conf_file;
-static u_char      *ngx_conf_params;
+static u_char      *ngx_prefix; // -p prefix
+static u_char      *ngx_conf_file; // -c 配置文件
+static u_char      *ngx_conf_params; // -g 全局配置
 static char        *ngx_signal;
 
 
@@ -288,6 +288,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    // 读取配置，初始化所有模块
     cycle = ngx_init_cycle(&init_cycle);
     if (cycle == NULL) {
         if (ngx_test_config) {
@@ -324,6 +325,7 @@ main(int argc, char *const *argv)
         return 0;
     }
 
+    // 发送信号 nginx -s reload
     if (ngx_signal) {
         return ngx_signal_process(cycle, ngx_signal);
     }
@@ -738,6 +740,7 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
 }
 
 
+// 解析命令行选项
 static ngx_int_t
 ngx_get_options(int argc, char *const *argv)
 {

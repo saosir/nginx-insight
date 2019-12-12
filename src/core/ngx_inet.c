@@ -825,7 +825,7 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
         }
     }
 
-    if (port) {
+    if (port) { // 带端口
         port++;
 
         len = last - port;

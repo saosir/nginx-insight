@@ -809,7 +809,7 @@ ngx_http_handler(ngx_http_request_t *r)
     if (!r->internal) {
         switch (r->headers_in.connection_type) {
         case 0:
-            r->keepalive = (r->http_version > NGX_HTTP_VERSION_10);
+            r->keepalive = (r->http_version > NGX_HTTP_VERSION_10); // 未设置跟进http版本设置
             break;
 
         case NGX_HTTP_CONNECTION_CLOSE:
@@ -1733,7 +1733,7 @@ ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
     return ngx_http_output_filter(r, &out);
 }
 
-
+// 调用 ngx_http_top_header_filter
 ngx_int_t
 ngx_http_send_header(ngx_http_request_t *r)
 {
@@ -1755,7 +1755,7 @@ ngx_http_send_header(ngx_http_request_t *r)
     return ngx_http_top_header_filter(r);
 }
 
-
+// 调用 ngx_http_top_body_filter 
 ngx_int_t
 ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {
@@ -2637,7 +2637,7 @@ ngx_http_get_forwarded_addr(ngx_http_request_t *r, ngx_addr_t *addr,
     rc = NGX_DECLINED;
 
     found = 0;
-
+    // x-forwarded-for情况
     while (i-- > 0) {
         rc = ngx_http_get_forwarded_addr_internal(r, addr, h[i]->value.data,
                                                   h[i]->value.len, proxies,
@@ -2674,7 +2674,7 @@ ngx_http_get_forwarded_addr_internal(ngx_http_request_t *r, ngx_addr_t *addr,
     if (ngx_cidr_match(addr->sockaddr, proxies) != NGX_OK) {
         return NGX_DECLINED;
     }
-
+    // 由尾部开始解析
     for (p = xff + xfflen - 1; p > xff; p--, xfflen--) {
         if (*p != ' ' && *p != ',') {
             break;
@@ -2726,13 +2726,15 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     ngx_http_core_srv_conf_t    *cscf, **cscfp;
     ngx_http_core_main_conf_t   *cmcf;
 
+    // nginx支持 http{} 和 server{} 拥有不同配置，每个server{}维护一个 ngx_http_conf_ctx_t
+    // server {} 解析到的配置存储于 ctx
     ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_conf_ctx_t));
     if (ctx == NULL) {
         return NGX_CONF_ERROR;
     }
 
     http_ctx = cf->ctx;
-    ctx->main_conf = http_ctx->main_conf;
+    ctx->main_conf = http_ctx->main_conf; // 继承 http{} 的 main_conf
 
     /* the server{}'s srv_conf */
 
@@ -2747,7 +2749,7 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     if (ctx->loc_conf == NULL) {
         return NGX_CONF_ERROR;
     }
-
+    // 为所有模块创建在server{}的上下文
     for (i = 0; cf->cycle->modules[i]; i++) {
         if (cf->cycle->modules[i]->type != NGX_HTTP_MODULE) {
             continue;
@@ -2777,12 +2779,13 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
     /* the server configuration context */
 
+    // 由 ngx_http_core_module 进行管理
     cscf = ctx->srv_conf[ngx_http_core_module.ctx_index];
     cscf->ctx = ctx;
 
-
     cmcf = ctx->main_conf[ngx_http_core_module.ctx_index];
 
+    // 添加到 http_core->main_conf->servers
     cscfp = ngx_array_push(&cmcf->servers);
     if (cscfp == NULL) {
         return NGX_CONF_ERROR;
@@ -2792,15 +2795,16 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
 
 
     /* parse inside server{} */
-
+    // 备份
     pcf = *cf;
     cf->ctx = ctx;
     cf->cmd_type = NGX_HTTP_SRV_CONF;
 
     rv = ngx_conf_parse(cf, NULL);
 
-    *cf = pcf;
+    *cf = pcf; // 还原
 
+    // 监听任意端口
     if (rv == NGX_CONF_OK && !cscf->listen) {
         ngx_memzero(&lsopt, sizeof(ngx_http_listen_opt_t));
 
@@ -2867,12 +2871,14 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     ngx_http_conf_ctx_t       *ctx, *pctx;
     ngx_http_core_loc_conf_t  *clcf, *pclcf;
 
+    // location {} 解析到的配置存储于ctx
     ctx = ngx_pcalloc(cf->pool, sizeof(ngx_http_conf_ctx_t));
     if (ctx == NULL) {
         return NGX_CONF_ERROR;
     }
 
     pctx = cf->ctx;
+    // 继承父级main_conf/srv_conf配置
     ctx->main_conf = pctx->main_conf;
     ctx->srv_conf = pctx->srv_conf;
 
@@ -3036,13 +3042,13 @@ ngx_http_core_location(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
         return NGX_CONF_ERROR;
     }
 
-    save = *cf;
+    save = *cf; // 备份
     cf->ctx = ctx;
     cf->cmd_type = NGX_HTTP_LOC_CONF;
 
     rv = ngx_conf_parse(cf, NULL);
 
-    *cf = save;
+    *cf = save; // 还原
 
     return rv;
 }

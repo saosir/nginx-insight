@@ -46,7 +46,7 @@ struct ngx_event_s {
     unsigned         disabled:1;
 
     /* the ready event; in aio mode 0 means that no operation can be posted */
-    unsigned         ready:1;
+    unsigned         ready:1; // 事件是否就绪
 
     unsigned         oneshot:1;
 
@@ -56,10 +56,10 @@ struct ngx_event_s {
     unsigned         eof:1;
     unsigned         error:1;
 
-    unsigned         timedout:1;
+    unsigned         timedout:1; //是否已经超时
     unsigned         timer_set:1;
 
-    unsigned         delayed:1;
+    unsigned         delayed:1; // 延迟写
 
     unsigned         deferred_accept:1;
 
@@ -107,7 +107,7 @@ struct ngx_event_s {
     unsigned         available:1;
 #endif
 
-    ngx_event_handler_pt  handler;
+    ngx_event_handler_pt  handler; // socket有读取事件后触发
 
 
 #if (NGX_HAVE_IOCP)
@@ -438,15 +438,15 @@ extern ngx_os_io_t  ngx_io;
 
 
 typedef struct {
-    ngx_uint_t    connections;
-    ngx_uint_t    use;
+    ngx_uint_t    connections; // 最大连接数
+    ngx_uint_t    use; // 使用的io事件模型(use命令)
 
     ngx_flag_t    multi_accept;
     ngx_flag_t    accept_mutex;
 
     ngx_msec_t    accept_mutex_delay;
 
-    u_char       *name;
+    u_char       *name; // io事件名称(use命令)
 
 #if (NGX_DEBUG)
     ngx_array_t   debug_connection;

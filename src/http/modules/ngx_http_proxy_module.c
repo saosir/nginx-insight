@@ -53,7 +53,7 @@ typedef struct {
 
 
 typedef struct {
-    ngx_http_upstream_conf_t       upstream;
+    ngx_http_upstream_conf_t       upstream; // proxy命令的 upstream 配置
 
     ngx_array_t                   *body_flushes;
     ngx_array_t                   *body_lengths;
@@ -113,7 +113,7 @@ typedef struct {
     ngx_chain_t                   *free;
     ngx_chain_t                   *busy;
 
-    unsigned                       head:1;
+    unsigned                       head:1; // 请求为HEAD
     unsigned                       internal_chunked:1;
     unsigned                       header_sent:1;
 } ngx_http_proxy_ctx_t;
@@ -260,7 +260,10 @@ static ngx_command_t  ngx_http_proxy_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
-
+    // 用于替换后端返回的重定向Location，如：
+    // proxied server 返回 Location: http://localhost:8000/two
+    // proxy_redirect http://localhost:8000/two/ http://frontend/one/;
+    // nginx 返回到 client 则变为 Location: http://frontend/one/
     { ngx_string("proxy_redirect"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE12,
       ngx_http_proxy_redirect,
@@ -844,7 +847,7 @@ static ngx_path_init_t  ngx_http_proxy_temp_path = {
     ngx_string(NGX_HTTP_PROXY_TEMP_PATH), { 1, 2, 0 }
 };
 
-
+// 请求解析定位到localtion，发送给proxy处理
 static ngx_int_t
 ngx_http_proxy_handler(ngx_http_request_t *r)
 {
@@ -886,7 +889,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
 
     u->output.tag = (ngx_buf_tag_t) &ngx_http_proxy_module;
 
-    u->conf = &plcf->upstream;
+    u->conf = &plcf->upstream; // 关联proxy->upstream到request->upstream
 
 #if (NGX_HTTP_CACHE)
     pmcf = ngx_http_get_module_main_conf(r, ngx_http_proxy_module);
@@ -933,7 +936,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
     {
         r->request_body_no_buffering = 1;
     }
-
+    // 读取请求的body，发送给upstream
     rc = ngx_http_read_client_request_body(r, ngx_http_upstream_init);
 
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
@@ -1196,7 +1199,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
     {
         ctx->head = 1;
     }
-
+    // 计算upstream请求大小
     len = method.len + 1 + sizeof(ngx_http_proxy_version) - 1
           + sizeof(CRLF) - 1;
 
@@ -1308,7 +1311,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         }
     }
 
-
+    // 根据计算的len分配buf
     b = ngx_create_temp_buf(r->pool, len);
     if (b == NULL) {
         return NGX_ERROR;
@@ -1321,7 +1324,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
 
     cl->buf = b;
 
-
+    // 将发送往upstream的请求内容放入cl->buf
     /* the request line */
 
     b->last = ngx_copy(b->last, method.data, method.len);
@@ -1416,7 +1419,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
 
     b->last = e.pos;
 
-
+    // 传递client的headers到upstream
     if (plcf->upstream.pass_request_headers) {
         part = &r->headers_in.headers.part;
         header = part->elts;
@@ -1485,7 +1488,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         }
 
     } else if (plcf->body_values == NULL && plcf->upstream.pass_request_body) {
-
+        // 将body(来自client的请求体)放入cl尾部
         body = u->request_bufs;
         u->request_bufs = cl;
 
@@ -1760,7 +1763,7 @@ ngx_http_proxy_process_status_line(ngx_http_request_t *r)
 
         return NGX_OK;
     }
-
+    // 解析status line 完成
     if (u->state && u->state->status == 0) {
         u->state->status = ctx->status.code;
     }
@@ -1977,7 +1980,7 @@ ngx_http_proxy_input_filter_init(void *data)
         u->length = 0;
         u->keepalive = !u->headers_in.connection_close;
 
-    } else if (u->headers_in.chunked) {
+    } else if (u->headers_in.chunked) { // chunked算法
         /* chunked */
 
         u->pipe->input_filter = ngx_http_proxy_chunked_filter;
@@ -3591,12 +3594,14 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf->handler = ngx_http_proxy_handler;
 
+    // 尾部是否带 slash，如果location 的url尾部带 '/'，client请求不到 '/'，nginx返回301重定向
     if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {
         clcf->auto_redirect = 1;
     }
 
     value = cf->args->elts;
 
+    // 解析 proxy_pass 指令的参数，可能是upstream或者代理服务器
     url = &value[1];
 
     n = ngx_http_script_variables_count(url);

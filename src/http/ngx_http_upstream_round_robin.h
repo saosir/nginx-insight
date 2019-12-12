@@ -67,16 +67,16 @@ struct ngx_http_upstream_rr_peers_s {
     ngx_http_upstream_rr_peers_t   *zone_next;
 #endif
 
-    ngx_uint_t                      total_weight;
+    ngx_uint_t                      total_weight; // 所有权重总和，方便计算权重比例
 
-    unsigned                        single:1;
-    unsigned                        weighted:1;
+    unsigned                        single:1; // 只有一个地址
+    unsigned                        weighted:1; // 权重比例不均衡
 
     ngx_str_t                      *name;
 
     ngx_http_upstream_rr_peers_t   *next;
 
-    ngx_http_upstream_rr_peer_t    *peer;
+    ngx_http_upstream_rr_peer_t    *peer; // 后端peer链表
 };
 
 
@@ -128,7 +128,7 @@ typedef struct {
     ngx_uint_t                      config;
     ngx_http_upstream_rr_peers_t   *peers;
     ngx_http_upstream_rr_peer_t    *current;
-    uintptr_t                      *tried;
+    uintptr_t                      *tried; // bitmap 每一位代表一台后端的状态，0表示可用，1表示不可用
     uintptr_t                       data;
 } ngx_http_upstream_rr_peer_data_t;
 
