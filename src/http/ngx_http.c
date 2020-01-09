@@ -462,7 +462,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
     cmcf->phase_engine.location_rewrite_index = (ngx_uint_t) -1;
     find_config_index = 0;
     use_rewrite = cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers.nelts ? 1 : 0;
-    use_access = cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers.nelts ? 1 : 0;
+    use_access = cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers.nelts ? 1 : 0; // access phase是否注册handler
 
     n = 1                  /* find config phase */
         + use_rewrite      /* post rewrite phase */
@@ -497,7 +497,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 
         case NGX_HTTP_FIND_CONFIG_PHASE:
             find_config_index = n;
-
+            // 内部phase，不挂载任何handler，没有设置ph->next
             ph->checker = ngx_http_core_find_config_phase;
             n++;
             ph++;
@@ -508,14 +508,14 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
             if (cmcf->phase_engine.location_rewrite_index == (ngx_uint_t) -1) {
                 cmcf->phase_engine.location_rewrite_index = n;
             }
-            checker = ngx_http_core_rewrite_phase;
+            checker = ngx_http_core_rewrite_phase; // 内部请求
 
             break;
 
         case NGX_HTTP_POST_REWRITE_PHASE: // 该阶段只有一个handler
             if (use_rewrite) {
                 ph->checker = ngx_http_core_post_rewrite_phase;
-                ph->next = find_config_index;
+                ph->next = find_config_index; // rewrite之后返回到 find config phase
                 n++;
                 ph++;
             }
@@ -524,10 +524,11 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 
         case NGX_HTTP_ACCESS_PHASE: // 接下来循环就是NGX_HTTP_POST_ACCESS_PHASE
             checker = ngx_http_core_access_phase;
-            n++;  // next 跨过 NGX_HTTP_POST_ACCESS_PHASE 阶段
+            n++;  // next 跨过 NGX_HTTP_POST_ACCESS_PHASE 阶段，因为access和post access是并存的
             break;
 
         case NGX_HTTP_POST_ACCESS_PHASE:
+            // 只会有一个post access phase handler
             if (use_access) {
                 ph->checker = ngx_http_core_post_access_phase;
                 ph->next = n;

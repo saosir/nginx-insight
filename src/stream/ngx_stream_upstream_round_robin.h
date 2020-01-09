@@ -68,13 +68,13 @@ struct ngx_stream_upstream_rr_peers_s {
     ngx_uint_t                       total_weight;
 
     unsigned                         single:1;
-    unsigned                         weighted:1;
+    unsigned                         weighted:1; // 是否需要考虑权重
 
     ngx_str_t                       *name;
 
-    ngx_stream_upstream_rr_peers_t  *next;
+    ngx_stream_upstream_rr_peers_t  *next; // 指向backup server
 
-    ngx_stream_upstream_rr_peer_t   *peer;
+    ngx_stream_upstream_rr_peer_t   *peer; // upstream{}的所有server解析后的peer链表
 };
 
 

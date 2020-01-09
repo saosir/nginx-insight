@@ -1044,6 +1044,7 @@ ngx_worker_process_exit(ngx_cycle_t *cycle)
 }
 
 
+// 接收master进程通信发送过来的指令
 static void
 ngx_channel_handler(ngx_event_t *ev)
 {

@@ -119,7 +119,7 @@ typedef struct {
 
 
 struct ngx_http_upstream_srv_conf_s {
-    ngx_http_upstream_peer_t         peer; // upstream配置
+    ngx_http_upstream_peer_t         peer; // upstream{}配置
     void                           **srv_conf;
 
     ngx_array_t                     *servers;  /* ngx_http_upstream_server_t */ // upstream { server } 命令

@@ -701,7 +701,7 @@ ngx_stream_upstream_init_main_conf(ngx_conf_t *cf, void *conf)
     uscfp = umcf->upstreams.elts;
 
     for (i = 0; i < umcf->upstreams.nelts; i++) {
-
+        // upstream{}中未显示设置负载均衡算法，统一默认使用ngx_stream_upstream_init_round_robin
         init = uscfp[i]->peer.init_upstream
                                          ? uscfp[i]->peer.init_upstream
                                          : ngx_stream_upstream_init_round_robin;

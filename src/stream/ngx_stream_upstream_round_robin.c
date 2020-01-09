@@ -32,7 +32,10 @@ static void ngx_stream_upstream_empty_save_session(ngx_peer_connection_t *pc,
 
 #endif
 
+// upstream{}默认的负载均衡初始化函数
 
+// 建立所有server地址解析后，得到真实地址peer的数据结构
+// 一个server命令指定的地址有可能通过dns解析得到多个peer（真实ip）
 ngx_int_t
 ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
     ngx_stream_upstream_srv_conf_t *us)
@@ -44,13 +47,12 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
     ngx_stream_upstream_rr_peers_t  *peers, *backup;
 
     us->peer.init = ngx_stream_upstream_init_round_robin_peer;
-
+    // 初始化 upstream{} 中的所有server
     if (us->servers) {
         server = us->servers->elts;
 
-        n = 0;
-        w = 0;
-
+        n = 0; // 所有server的真实地址个数
+        w = 0; // 所有server的真实地址权重总和
         for (i = 0; i < us->servers->nelts; i++) {
             if (server[i].backup) {
                 continue;
@@ -79,7 +81,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
 
         peers->single = (n == 1);
         peers->number = n;
-        peers->weighted = (w != n);
+        peers->weighted = (w != n); // 是否设置某些server的权重
         peers->total_weight = w;
         peers->name = &us->host;
 
@@ -116,7 +118,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
 
         n = 0;
         w = 0;
-
+        // 建立backup server的peer数据结构
         for (i = 0; i < us->servers->nelts; i++) {
             if (!server[i].backup) {
                 continue;
@@ -245,7 +247,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
     return NGX_OK;
 }
 
-
+// 与peer建立连接的upstream上下文初始化
 ngx_int_t
 ngx_stream_upstream_init_round_robin_peer(ngx_stream_session_t *s,
     ngx_stream_upstream_srv_conf_t *us)

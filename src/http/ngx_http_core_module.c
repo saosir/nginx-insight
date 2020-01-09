@@ -798,7 +798,7 @@ ngx_module_t  ngx_http_core_module = {
 
 ngx_str_t  ngx_http_core_get_method = { 3, (u_char *) "GET" };
 
-
+// 解析完http请求头部（未读取body）后会被调用，执行http的phase
 void
 ngx_http_handler(ngx_http_request_t *r)
 {
@@ -809,7 +809,7 @@ ngx_http_handler(ngx_http_request_t *r)
     if (!r->internal) {
         switch (r->headers_in.connection_type) {
         case 0:
-            r->keepalive = (r->http_version > NGX_HTTP_VERSION_10); // 未设置跟进http版本设置
+            r->keepalive = (r->http_version > NGX_HTTP_VERSION_10); // 根据http版本设置keepalive默认值
             break;
 
         case NGX_HTTP_CONNECTION_CLOSE:
@@ -823,11 +823,11 @@ ngx_http_handler(ngx_http_request_t *r)
 
         r->lingering_close = (r->headers_in.content_length_n > 0
                               || r->headers_in.chunked);
-        r->phase_handler = 0;
+        r->phase_handler = 0; // 非内部请求从0开始执行
 
     } else {
         cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
-        r->phase_handler = cmcf->phase_engine.server_rewrite_index;
+        r->phase_handler = cmcf->phase_engine.server_rewrite_index; // 内部请求调用ngx_http_core_rewrite_phase
     }
 
     r->valid_location = 1;
@@ -837,6 +837,7 @@ ngx_http_handler(ngx_http_request_t *r)
     r->gzip_vary = 0;
 #endif
 
+    // 开始执行phase
     r->write_event_handler = ngx_http_core_run_phases;
     ngx_http_core_run_phases(r);
 }
@@ -863,7 +864,7 @@ ngx_http_core_run_phases(ngx_http_request_t *r)
     }
 }
 
-
+// 通用phase
 ngx_int_t
 ngx_http_core_generic_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
@@ -927,7 +928,7 @@ ngx_http_core_rewrite_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     return NGX_OK;
 }
 
-
+// 根据请求定位location
 ngx_int_t
 ngx_http_core_find_config_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph)
@@ -968,7 +969,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
     if (r->headers_in.content_length_n != -1
         && !r->discard_body
         && clcf->client_max_body_size
-        && clcf->client_max_body_size < r->headers_in.content_length_n)
+        && clcf->client_max_body_size < r->headers_in.content_length_n) // Content-Length 超过设置的body_size最大值
     {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                       "client intended to send too large body: %O bytes",
@@ -980,7 +981,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
         return NGX_OK;
     }
 
-    if (rc == NGX_DONE) {
+    if (rc == NGX_DONE) { // 重定向
         ngx_http_clear_location(r);
 
         r->headers_out.location = ngx_list_push(&r->headers_out.headers);
@@ -1065,7 +1066,7 @@ ngx_http_core_post_rewrite_phase(ngx_http_request_t *r,
     return NGX_AGAIN;
 }
 
-
+//  返回NGX_AGAIN执行下一阶段
 ngx_int_t
 ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 {
@@ -1094,14 +1095,14 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     if (clcf->satisfy == NGX_HTTP_SATISFY_ALL) {
-
+        // 需要满足所有条件，继续执行下一个handler
         if (rc == NGX_OK) {
             r->phase_handler++;
             return NGX_AGAIN;
         }
 
     } else {
-        if (rc == NGX_OK) {
+        if (rc == NGX_OK) { // 满足其中一个条件，直接执行下一个phase
             r->access_code = 0;
 
             if (r->headers_out.www_authenticate) {
@@ -1114,7 +1115,7 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
 
         if (rc == NGX_HTTP_FORBIDDEN || rc == NGX_HTTP_UNAUTHORIZED) {
             if (r->access_code != NGX_HTTP_UNAUTHORIZED) {
-                r->access_code = rc;
+                r->access_code = rc; // 返回NGX_HTTP_UNAUTHORIZED优先级比NGX_HTTP_FORBIDDEN大
             }
 
             r->phase_handler++;
@@ -1128,7 +1129,7 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     return NGX_OK;
 }
 
-
+// 处理 access phase 阶段的执行结果
 ngx_int_t
 ngx_http_core_post_access_phase(ngx_http_request_t *r,
     ngx_http_phase_handler_t *ph)
@@ -1166,7 +1167,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
 
     if (r->content_handler) {
         r->write_event_handler = ngx_http_request_empty_handler;
-        ngx_http_finalize_request(r, r->content_handler(r));
+        ngx_http_finalize_request(r, r->content_handler(r)); // 调用content_handler
         return NGX_OK;
     }
 
@@ -1201,7 +1202,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
         ngx_http_finalize_request(r, NGX_HTTP_FORBIDDEN);
         return NGX_OK;
     }
-
+    // 没有handler处理请求，返回404
     ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "no handler found");
 
     ngx_http_finalize_request(r, NGX_HTTP_NOT_FOUND);
@@ -1213,7 +1214,7 @@ void
 ngx_http_update_location_config(ngx_http_request_t *r)
 {
     ngx_http_core_loc_conf_t  *clcf;
-
+    // 得到当前location的配置
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     if (r->method & clcf->limit_except) {
@@ -1316,7 +1317,7 @@ ngx_http_core_find_location(ngx_http_request_t *r)
 
     rc = ngx_http_core_find_static_location(r, pclcf->static_locations);
 
-    if (rc == NGX_AGAIN) {
+    if (rc == NGX_AGAIN) { // 递归
 
 #if (NGX_PCRE)
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
@@ -1755,7 +1756,7 @@ ngx_http_send_header(ngx_http_request_t *r)
     return ngx_http_top_header_filter(r);
 }
 
-// 调用 ngx_http_top_body_filter 
+// 调用 ngx_http_top_body_filter
 ngx_int_t
 ngx_http_output_filter(ngx_http_request_t *r, ngx_chain_t *in)
 {

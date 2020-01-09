@@ -127,7 +127,7 @@ ngx_http_auth_basic_handler(ngx_http_request_t *r)
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
                       "no user/password was provided for basic authentication");
 
-        return ngx_http_auth_basic_set_realm(r, &realm);
+        return ngx_http_auth_basic_set_realm(r, &realm); // 返回未授权
     }
 
     if (rc == NGX_ERROR) {
@@ -290,7 +290,7 @@ ngx_http_auth_basic_crypt_handler(ngx_http_request_t *r, ngx_str_t *passwd,
     if (rc != NGX_OK) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
-
+    // 密码正确
     if (ngx_strcmp(encrypted, passwd->data) == 0) {
         return NGX_OK;
     }

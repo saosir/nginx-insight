@@ -97,13 +97,14 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,
 
         out.buf = r->header_in;
         out.next = NULL;
-
+        // 有可能修改out->pos
         rc = ngx_http_request_body_filter(r, &out);
 
         if (rc != NGX_OK) {
             goto done;
         }
 
+        // 经过ngx_http_request_body_filter后，可能有部分内存不是body，需要减掉
         r->request_length += preread - (r->header_in->last - r->header_in->pos);
         // 针对body比较小的请求进行优化，剩下需要读取的body小于r->header_in的可用缓存，直接复用r->header_in
         // 不再分配client_body_buffer_size大小的buf
@@ -127,8 +128,8 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,
 
             rb->buf = b; // 有效利用r->header_in的buf
 
-            r->read_event_handler = ngx_http_read_client_request_body_handler;
-            r->write_event_handler = ngx_http_request_empty_handler;
+            r->read_event_handler = ngx_http_read_client_request_body_handler; // 还有数据需要读取，递归调用
+            r->write_event_handler = ngx_http_request_empty_handler; // 读取完body之前不允许写
 
             rc = ngx_http_do_read_client_request_body(r);
             goto done;
@@ -164,6 +165,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,
 
     /* TODO: honor r->request_body_in_single_buf */
 
+    // 剩余部分能够使用client_body_buffer_size保存的话，直接申请rb->rest大小的缓存块
     if (!r->headers_in.chunked && rb->rest < size) {
         size = (ssize_t) rb->rest;
 
@@ -261,7 +263,7 @@ ngx_http_read_client_request_body_handler(ngx_http_request_t *r)
     }
 }
 
-
+// 调用io接口读取数据
 static ngx_int_t
 ngx_http_do_read_client_request_body(ngx_http_request_t *r)
 {
@@ -910,7 +912,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in)
         size = cl->buf->last - cl->buf->pos;
 
         if ((off_t) size < rb->rest) {
-            cl->buf->pos = cl->buf->last;
+            cl->buf->pos = cl->buf->last; // 将此内存块全部转移
             rb->rest -= size;
 
         } else {

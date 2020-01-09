@@ -847,7 +847,7 @@ static ngx_path_init_t  ngx_http_proxy_temp_path = {
     ngx_string(NGX_HTTP_PROXY_TEMP_PATH), { 1, 2, 0 }
 };
 
-// 请求解析定位到localtion，发送给proxy处理
+// 请求解析定位到location，发送给proxy处理
 static ngx_int_t
 ngx_http_proxy_handler(ngx_http_request_t *r)
 {
@@ -1200,13 +1200,14 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
         ctx->head = 1;
     }
     // 计算upstream请求大小
-    len = method.len + 1 + sizeof(ngx_http_proxy_version) - 1
+    len = method.len + 1 + sizeof(ngx_http_proxy_version) - 1 //request line大小
           + sizeof(CRLF) - 1;
 
     escape = 0;
     loc_len = 0;
     unparsed_uri = 0;
 
+    // uri请求大小
     if (plcf->proxy_lengths && ctx->vars.uri.len) {
         uri_len = ctx->vars.uri.len;
 
@@ -3421,7 +3422,7 @@ ngx_http_proxy_init_headers(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *conf,
     ngx_http_script_compile_t     sc;
     ngx_http_script_copy_code_t  *copy;
 
-    if (headers->hash.buckets) {
+    if (headers->hash.buckets) { // 防止重复调用
         return NGX_OK;
     }
 
@@ -3592,7 +3593,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     clcf = ngx_http_conf_get_module_loc_conf(cf, ngx_http_core_module);
 
-    clcf->handler = ngx_http_proxy_handler;
+    clcf->handler = ngx_http_proxy_handler; // location回调
 
     // 尾部是否带 slash，如果location 的url尾部带 '/'，client请求不到 '/'，nginx返回301重定向
     if (clcf->name.len && clcf->name.data[clcf->name.len - 1] == '/') {

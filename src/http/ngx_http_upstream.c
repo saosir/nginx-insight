@@ -508,7 +508,7 @@ ngx_http_upstream_create(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-
+// 读取完body之后调用的回调
 void
 ngx_http_upstream_init(ngx_http_request_t *r)
 {
@@ -549,7 +549,7 @@ ngx_http_upstream_init(ngx_http_request_t *r)
 // 创建发送往upstream的请求
 // 创建初始化upstream
 // 选取后端peer，发起连接
-// 
+//
 static void
 ngx_http_upstream_init_request(ngx_http_request_t *r)
 {
@@ -799,7 +799,7 @@ found:
 #if (NGX_HTTP_SSL)
     u->ssl_name = uscf->host;
 #endif
-    // 根据配置中upstream的负责均衡算法初始化
+    // 调用配置upstream{}中设置的负载均衡算法初始化函数
     if (uscf->peer.init(r, uscf) != NGX_OK) {
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -6045,6 +6045,7 @@ ngx_http_upstream_add(ngx_conf_t *cf, ngx_url_t *u, ngx_uint_t flags)
         return uscfp[i];
     }
 
+    // 新建一个
     uscf = ngx_pcalloc(cf->pool, sizeof(ngx_http_upstream_srv_conf_t));
     if (uscf == NULL) {
         return NULL;

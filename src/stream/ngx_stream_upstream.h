@@ -28,7 +28,7 @@
 
 
 typedef struct {
-    ngx_array_t                        upstreams;
+    ngx_array_t                        upstreams; // 所有的upstream{}
                                            /* ngx_stream_upstream_srv_conf_t */
 } ngx_stream_upstream_main_conf_t;
 
@@ -45,12 +45,14 @@ typedef ngx_int_t (*ngx_stream_upstream_init_peer_pt)(ngx_stream_session_t *s,
 typedef struct {
     ngx_stream_upstream_init_pt        init_upstream;
     ngx_stream_upstream_init_peer_pt   init;
-    void                              *data;
+    void                              *data; // 指向peer数组
 } ngx_stream_upstream_peer_t;
 
 
+// upstream{} 中 server 命令的详细配置
 typedef struct {
     ngx_str_t                          name;
+    // server解析后得到的真实地址信息
     ngx_addr_t                        *addrs;
     ngx_uint_t                         naddrs;
     ngx_uint_t                         weight;
@@ -60,7 +62,7 @@ typedef struct {
     ngx_msec_t                         slow_start;
     ngx_uint_t                         down;
 
-    unsigned                           backup:1;
+    unsigned                           backup:1; // 备份服务器
 
     NGX_COMPAT_BEGIN(4)
     NGX_COMPAT_END

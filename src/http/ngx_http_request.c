@@ -1033,7 +1033,7 @@ failed:
 
 #endif
 
-
+// 解析http请求首行，完成后将读请求handler设置为ngx_http_process_request_headers
 static void
 ngx_http_process_request_line(ngx_event_t *rev)
 {
@@ -1313,7 +1313,7 @@ ngx_http_process_request_uri(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-// 请求key-value头部字段
+// 解析http请求的headers，解析完成调用ngx_http_run_posted_requests
 static void
 ngx_http_process_request_headers(ngx_event_t *rev)
 {
@@ -1977,7 +1977,7 @@ ngx_http_process_request_header(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-
+// 读写回调设置为ngx_http_request_handler并调用ngx_http_handler
 void
 ngx_http_process_request(ngx_http_request_t *r)
 {

@@ -421,9 +421,9 @@ struct ngx_http_request_s {
     ngx_http_post_subrequest_t       *post_subrequest;
     ngx_http_posted_request_t        *posted_requests;
 
-    ngx_int_t                         phase_handler;
+    ngx_int_t                         phase_handler; // 当前执行到的phase下标，在读取解析完headers开始执行
     ngx_http_handler_pt               content_handler;
-    ngx_uint_t                        access_code;
+    ngx_uint_t                        access_code; // http返回码
 
     ngx_http_variable_value_t        *variables;
 
@@ -523,7 +523,7 @@ struct ngx_http_request_s {
     unsigned                          chunked:1;
     unsigned                          header_only:1;
     unsigned                          expect_trailers:1;
-    unsigned                          keepalive:1;
+    unsigned                          keepalive:1; // 与connection_type相关，如果connection_type未设置，根据http版本号决定
     unsigned                          lingering_close:1;
     unsigned                          discard_body:1;
     unsigned                          reading_body:1;

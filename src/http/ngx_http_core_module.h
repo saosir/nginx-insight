@@ -371,13 +371,13 @@ struct ngx_http_core_loc_conf_s {
 
     ngx_uint_t    keepalive_requests;      /* keepalive_requests */
     ngx_uint_t    keepalive_disable;       /* keepalive_disable */
-    ngx_uint_t    satisfy;                 /* satisfy */
+    ngx_uint_t    satisfy;                 /* satisfy access模块满足条件，需要满足全部条件还是其中一个 */
     ngx_uint_t    lingering_close;         /* lingering_close */
     ngx_uint_t    if_modified_since;       /* if_modified_since */
     ngx_uint_t    max_ranges;              /* max_ranges */
     ngx_uint_t    client_body_in_file_only; /* client_body_in_file_only */
 
-    ngx_flag_t    client_body_in_single_buffer;
+    ngx_flag_t    client_body_in_single_buffer; // body只使用单个缓存块
                                            /* client_body_in_singe_buffer */
     ngx_flag_t    internal;                /* internal */
     ngx_flag_t    sendfile;                /* sendfile */

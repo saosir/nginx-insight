@@ -370,7 +370,7 @@ ngx_inet6_ntop(u_char *p, u_char *text, size_t len)
 
 #endif
 
-
+// 解析 192.168.0.0/24 网络掩码
 ngx_int_t
 ngx_ptocidr(ngx_str_t *text, ngx_cidr_t *cidr)
 {

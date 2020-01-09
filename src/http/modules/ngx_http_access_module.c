@@ -178,7 +178,7 @@ ngx_http_access_handler(ngx_http_request_t *r)
     return NGX_DECLINED;
 }
 
-
+// ipv4 判断
 static ngx_int_t
 ngx_http_access_inet(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf,
     in_addr_t addr)
@@ -193,7 +193,7 @@ ngx_http_access_inet(ngx_http_request_t *r, ngx_http_access_loc_conf_t *alcf,
                        "access: %08XD %08XD %08XD",
                        addr, rule[i].mask, rule[i].addr);
 
-        if ((addr & rule[i].mask) == rule[i].addr) {
+        if ((addr & rule[i].mask) == rule[i].addr) { // 掩码比较
             return ngx_http_access_found(r, rule[i].deny);
         }
     }
