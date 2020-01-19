@@ -77,14 +77,14 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
     }
 
     /* add the incoming buf to the chain ctx->in */
-
+    // 将in添加到ctx->in尾部
     if (in) {
         if (ngx_output_chain_add_copy(ctx->pool, &ctx->in, in) == NGX_ERROR) {
             return NGX_ERROR;
         }
     }
 
-    // 将输出内容放入out链表
+    // 构建out链表
     out = NULL;
     last_out = &out;
     last = NGX_NONE;
@@ -106,7 +106,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 
             bsize = ngx_buf_size(ctx->in->buf);
 
-            if (bsize == 0 && !ngx_buf_special(ctx->in->buf)) {
+            if (bsize == 0 && !ngx_buf_special(ctx->in->buf)) { // 忽略
 
                 ngx_log_error(NGX_LOG_ALERT, ctx->pool->log, 0,
                               "zero size buf in output "
@@ -128,7 +128,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 continue;
             }
 
-            if (bsize < 0) {
+            if (bsize < 0) { // 错误缓存块
 
                 ngx_log_error(NGX_LOG_ALERT, ctx->pool->log, 0,
                               "negative size buf in output "
@@ -148,7 +148,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 return NGX_ERROR;
             }
 
-            // 可直接将ctx->in->buf放入output_chain
+            // 可直接将ctx->in->buf串联到out链表
             if (ngx_output_chain_as_is(ctx, ctx->in->buf)) {
 
                 /* move the chain link to the output chain */
@@ -335,7 +335,7 @@ ngx_output_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain,
     ngx_buf_t    *b, *buf;
 #endif
 
-    // 指向尾部
+    // ll指向chain尾部
     ll = chain;
 
     for (cl = *chain; cl; cl = cl->next) {
@@ -687,6 +687,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
 
     c = ctx->connection;
 
+    // 将in链接到out链表的尾部
     for (size = 0; in; in = in->next) {
 
         if (ngx_buf_size(in->buf) == 0 && !ngx_buf_special(in->buf)) {
@@ -739,7 +740,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         if (cl == NULL) {
             return NGX_ERROR;
         }
-
+        // 链接链表
         cl->buf = in->buf;
         cl->next = NULL;
         *ctx->last = cl;
@@ -798,6 +799,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         return NGX_OK;
     }
 
+    // 返回输出到链表的位置
     chain = c->send_chain(c, ctx->out, ctx->limit);
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
@@ -807,6 +809,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
+    // 是否chain之前的buf
     for (cl = ctx->out; cl && cl != chain; /* void */) {
         ln = cl;
         cl = cl->next;

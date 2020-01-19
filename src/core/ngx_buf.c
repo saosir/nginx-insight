@@ -271,7 +271,8 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
     return total;
 }
 
-
+// in链表的数据减去已经发送的字节数send，返回in链表中还未输出的首个节点
+// 同时会更新链表中已经发送出去的buf数据结构
 ngx_chain_t *
 ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
 {

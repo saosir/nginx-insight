@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 #include <ngx_event.h>
 
-
+// 输出chain链表in到socket
 ngx_chain_t *
 ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 {
@@ -38,7 +38,7 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 #endif
 
     /* the maximum limit size is the maximum size_t value - the page size */
-
+    // 一次最多写多少字节（limit）
     if (limit == 0 || limit > (off_t) (NGX_MAX_SIZE_T_VALUE - ngx_pagesize)) {
         limit = NGX_MAX_SIZE_T_VALUE - ngx_pagesize;
     }
@@ -52,7 +52,7 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
         prev_send = send;
 
         /* create the iovec and coalesce the neighbouring bufs */
-
+        // 将in转换为等价的vec
         cl = ngx_output_chain_to_iovec(&vec, in, limit - send, c->log);
 
         if (cl == NGX_CHAIN_ERROR) {
@@ -80,7 +80,7 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
         send += vec.size;
 
-        n = ngx_writev(c, &vec);
+        n = ngx_writev(c, &vec); // 返回实际写的字节数
 
         if (n == NGX_ERROR) {
             return NGX_CHAIN_ERROR;
@@ -92,7 +92,7 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
         in = ngx_chain_update_sent(in, sent);
 
-        if (send - prev_send != sent) {
+        if (send - prev_send != sent) { // 实际写的字节数少于需要发生的字节，说明socket已经不可写
             wev->ready = 0;
             return in;
         }
@@ -103,7 +103,7 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
     }
 }
 
-
+// 将in链表转换为可输出的iovec数组
 ngx_chain_t *
 ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit,
     ngx_log_t *log)
@@ -149,15 +149,15 @@ ngx_output_chain_to_iovec(ngx_iovec_t *vec, ngx_chain_t *in, size_t limit,
 
         size = in->buf->last - in->buf->pos;
 
-        if (size > limit - total) {
+        if (size > limit - total) { // 处理尾部边界条件
             size = limit - total;
         }
 
-        if (prev == in->buf->pos) {
+        if (prev == in->buf->pos) { // 可能链表里面相邻的两个buf的缓存在物理上也相邻，可以共用一个iovec
             iov->iov_len += size;
 
         } else {
-            if (n == vec->nalloc) {
+            if (n == vec->nalloc) { // iovs已经用完
                 break;
             }
 
@@ -200,7 +200,7 @@ eintr:
                            "writev() not ready");
             return NGX_AGAIN;
 
-        case NGX_EINTR:
+        case NGX_EINTR: // 防止中断发生，重新启动系统调用
             ngx_log_debug0(NGX_LOG_DEBUG_EVENT, c->log, err,
                            "writev() was interrupted");
             goto eintr;

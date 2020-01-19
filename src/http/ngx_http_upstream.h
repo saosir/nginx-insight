@@ -87,7 +87,7 @@ typedef ngx_int_t (*ngx_http_upstream_init_peer_pt)(ngx_http_request_t *r,
 typedef struct {
     ngx_http_upstream_init_pt        init_upstream; // upstream {} 中指定的负责均衡算法
     ngx_http_upstream_init_peer_pt   init; // 每一个请求过来都会调用（upstream为单个或者proxy_pass为域名不需要）
-    void                            *data; // 后端peer信息,参考ngx_http_upstream_init_round_robin
+    void                            *data; // 后端peer信息ngx_http_upstream_rr_peers_t, 参考ngx_http_upstream_init_round_robin
 } ngx_http_upstream_peer_t;
 
 
@@ -317,6 +317,7 @@ typedef void (*ngx_http_upstream_handler_pt)(ngx_http_request_t *r,
 
 
 struct ngx_http_upstream_s {
+    // upstream vent handler, socket事件回调时候会被调用
     ngx_http_upstream_handler_pt     read_event_handler;
     ngx_http_upstream_handler_pt     write_event_handler;
 
@@ -326,7 +327,7 @@ struct ngx_http_upstream_s {
 
     ngx_chain_t                     *request_bufs; // 发送给upstream的内存
 
-    ngx_output_chain_ctx_t           output;
+    ngx_output_chain_ctx_t           output; // 输出到upstream peer
     ngx_chain_writer_ctx_t           writer;
 
     ngx_http_upstream_conf_t        *conf; // 配置文件设置upstream配置项

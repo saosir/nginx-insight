@@ -45,7 +45,7 @@ typedef ngx_int_t (*ngx_stream_upstream_init_peer_pt)(ngx_stream_session_t *s,
 typedef struct {
     ngx_stream_upstream_init_pt        init_upstream;
     ngx_stream_upstream_init_peer_pt   init;
-    void                              *data; // 指向peer数组
+    void                              *data; // 指向peer数组 ngx_stream_upstream_rr_peers_t
 } ngx_stream_upstream_peer_t;
 
 

@@ -212,7 +212,7 @@ done:
     return rc;
 }
 
-
+// 由于body不缓存，继续读取
 ngx_int_t
 ngx_http_read_unbuffered_request_body(ngx_http_request_t *r)
 {

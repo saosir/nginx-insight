@@ -120,7 +120,7 @@ typedef enum {
 #define NGX_SSL_BUFFERED       0x01
 #define NGX_HTTP_V2_BUFFERED   0x02
 
-
+// 对socket的包装
 struct ngx_connection_s {
     void               *data; // 与连接关联的数据参数，在free_connections作为next指针
     // 事件通知函数
@@ -136,7 +136,7 @@ struct ngx_connection_s {
 
     ngx_listening_t    *listening;
 
-    off_t               sent; // 已发送字节大小
+    off_t               sent; // socket已发送字节大小
 
     ngx_log_t          *log;
 

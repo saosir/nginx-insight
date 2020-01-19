@@ -717,7 +717,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r)
             }
         }
 
-        if (u->resolved->sockaddr) {
+        if (u->resolved->sockaddr) { // 地址解析过后
 
             if (u->resolved->port == 0
                 && u->resolved->sockaddr->sa_family != AF_UNIX)
@@ -1265,7 +1265,7 @@ failed:
     }
 }
 
-
+// 根据ev事件类型调用upstream event handler
 static void
 ngx_http_upstream_handler(ngx_event_t *ev)
 {
@@ -1560,7 +1560,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u)
     }
 
     /* rc == NGX_OK || rc == NGX_AGAIN || rc == NGX_DONE */
-
+    // 连接成功
     c = u->peer.connection;
 
     c->requests++;
@@ -2001,7 +2001,7 @@ ngx_http_upstream_reinit(ngx_http_request_t *r, ngx_http_upstream_t *u)
     return NGX_OK;
 }
 
-
+// 向upstream发送请求
 static void
 ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
     ngx_uint_t do_write)
@@ -2024,7 +2024,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u,
     }
 
     c->log->action = "sending request to upstream";
-
+    // 开始发送body
     rc = ngx_http_upstream_send_request_body(r, u, do_write);
 
     if (rc == NGX_ERROR) {
@@ -2123,6 +2123,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream send request body");
 
+    // 需要缓存body
     if (!r->request_body_no_buffering) {
 
         /* buffered request body */
@@ -2173,6 +2174,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r,
     for ( ;; ) {
 
         if (do_write) {
+            // 输出数据
             rc = ngx_output_chain(&u->output, out);
 
             if (rc == NGX_ERROR) {
@@ -2200,7 +2202,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r,
         if (r->reading_body) {
             /* read client request body */
 
-            rc = ngx_http_read_unbuffered_request_body(r);
+            rc = ngx_http_read_unbuffered_request_body(r); // 因为不缓存body，继续从客户端读取数据用于发送给upstream
 
             if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
                 return rc;
@@ -2223,7 +2225,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r,
     if (!r->reading_body) {
         if (!u->store && !r->post_action && !u->conf->ignore_client_abort) {
             r->read_event_handler =
-                                  ngx_http_upstream_rd_check_broken_connection;
+                                  ngx_http_upstream_rd_check_broken_connection; // 检查是否有数据可读
         }
     }
 
@@ -4134,7 +4136,8 @@ ngx_http_upstream_dummy_handler(ngx_http_request_t *r, ngx_http_upstream_t *u)
                    "http upstream dummy handler");
 }
 
-// 尝试连接下一个upstream
+// 连接peer失败情况下，尝试连接upstream的下一个peer
+// ft_type表示失败原因，会做不同的逻辑处理
 static void
 ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
     ngx_uint_t ft_type)
@@ -4264,7 +4267,7 @@ ngx_http_upstream_next(ngx_http_request_t *r, ngx_http_upstream_t *u,
         ngx_http_upstream_finalize_request(r, u, status);
         return;
     }
-
+    // 释放connection
     if (u->peer.connection) {
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "close http upstream connection: %d",

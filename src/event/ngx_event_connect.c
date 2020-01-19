@@ -16,7 +16,8 @@ static ngx_int_t ngx_event_connect_set_transparent(ngx_peer_connection_t *pc,
     ngx_socket_t s);
 #endif
 
-// 连接后端Peer
+// 使用负载均衡算法pc.get获取peer地址
+// 创建socket开始连接
 // 返回NGX_DECLINED需要再次连接
 ngx_int_t
 ngx_event_connect_peer(ngx_peer_connection_t *pc)
@@ -31,12 +32,13 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     ngx_socket_t       s;
     ngx_event_t       *rev, *wev;
     ngx_connection_t  *c;
-
+    // 调用upstream.get获得peer地址进行连接
     rc = pc->get(pc, pc->data);
     if (rc != NGX_OK) {
         return rc;
     }
 
+    // 创建socket
     type = (pc->type ? pc->type : SOCK_STREAM);
 
     s = ngx_socket(pc->sockaddr->sa_family, type, 0);

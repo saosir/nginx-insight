@@ -183,7 +183,7 @@ ngx_stream_upstream_init_round_robin(ngx_conf_t *cf,
 
 
     /* an upstream implicitly defined by proxy_pass, etc. */
-
+    // upstream 直接是host:port
     if (us->port == 0) {
         ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
                       "no port in upstream \"%V\" in %s:%ui",

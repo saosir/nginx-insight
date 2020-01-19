@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 
-
+// 正常server与backup server总数
 #define ngx_http_upstream_tries(p) ((p)->number                               \
                                     + ((p)->next ? (p)->next->number : 0))
 
@@ -240,6 +240,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
     return NGX_OK;
 }
 
+// 请求到来后需要连接upstream调用
 // round_robin负载均衡 init
 ngx_int_t
 ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
@@ -247,7 +248,7 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
 {
     ngx_uint_t                         n;
     ngx_http_upstream_rr_peer_data_t  *rrp;
-
+    // request没有创建ngx_http_upstream_rr_peer_data_t的话申请一块内存
     rrp = r->upstream->peer.data;
 
     if (rrp == NULL) {
@@ -274,7 +275,7 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
         rrp->data = 0;
 
     } else {
-        n = (n + (8 * sizeof(uintptr_t) - 1)) / (8 * sizeof(uintptr_t));
+        n = (n + (8 * sizeof(uintptr_t) - 1)) / (8 * sizeof(uintptr_t)); // 上溢取整8bit
 
         rrp->tried = ngx_pcalloc(r->pool, n * sizeof(uintptr_t));
         if (rrp->tried == NULL) {
@@ -492,7 +493,7 @@ failed:
         }
 
         ngx_http_upstream_rr_peers_unlock(peers);
-
+        //递归调用
         rc = ngx_http_upstream_get_round_robin_peer(pc, rrp);
 
         if (rc != NGX_BUSY) {
@@ -591,7 +592,7 @@ ngx_http_upstream_get_peer(ngx_http_upstream_rr_peer_data_t *rrp)
     return best;
 }
 
-// round_robin负载均衡 free
+// round_robin负载均衡 free 函数get申请的资源，根据state做不同处理
 void
 ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
     ngx_uint_t state)
@@ -622,7 +623,7 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
         return;
     }
 
-    if (state & NGX_PEER_FAILED) {
+    if (state & NGX_PEER_FAILED) { // peer连接失败的处理逻辑
         now = ngx_time();
 
         peer->fails++;
@@ -647,7 +648,7 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data,
         }
 
     } else {
-
+        // 本次free说明peer的状态正常可用，将fails重置
         /* mark peer live if check passed */
 
         if (peer->accessed < peer->checked) {

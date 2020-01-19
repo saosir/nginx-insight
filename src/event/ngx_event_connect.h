@@ -43,10 +43,10 @@ struct ngx_peer_connection_s {
     ngx_uint_t                       tries;
     ngx_msec_t                       start_time;
 
-    ngx_event_get_peer_pt            get; // 获取upstream peer
-    ngx_event_free_peer_pt           free;
+    ngx_event_get_peer_pt            get; // 获取upstream peer真实地址和端口，赋值sockaddr
+    ngx_event_free_peer_pt           free; // 释放get函数申请的资源
     ngx_event_notify_peer_pt         notify;
-    void                            *data;
+    void                            *data; // upstream上下文，与使用的upstream负载均衡算法相关
 
 #if (NGX_SSL || NGX_COMPAT)
     ngx_event_set_peer_session_pt    set_session;
@@ -55,7 +55,7 @@ struct ngx_peer_connection_s {
 
     ngx_addr_t                      *local;
 
-    int                              type;
+    int                              type; // SOCK_STREAM表示tcp连接
     int                              rcvbuf; // socket接收缓存区大小
 
     ngx_log_t                       *log;

@@ -78,8 +78,9 @@ typedef void (*ngx_output_chain_aio_pt)(ngx_output_chain_ctx_t *ctx,
 struct ngx_output_chain_ctx_s {
     ngx_buf_t                   *buf; // 当前处理数据
     ngx_chain_t                 *in; // 待处理，应用层输入数据先放此处，处理完成放入busy
-    ngx_chain_t                 *free;
-    ngx_chain_t                 *busy; // 待发送缓存区，由io层读取并发送
+    ngx_chain_t                 *free; // 空闲可重复使用的buf
+    ngx_chain_t                 *busy;  // 待发送缓存区，由io层调度并发送
+                                        // ngx_chain_update_chains函数会逐渐情况busy链表中已发送的缓存块
 
     unsigned                     sendfile:1;
     unsigned                     directio:1;
@@ -104,18 +105,18 @@ struct ngx_output_chain_ctx_s {
     off_t                        alignment;
 
     ngx_pool_t                  *pool;
-    ngx_int_t                    allocated;
+    ngx_int_t                    allocated; // free 是否已经分配内存
     ngx_bufs_t                   bufs;
     ngx_buf_tag_t                tag;
 
     ngx_output_chain_filter_pt   output_filter;
-    void                        *filter_ctx;
+    void                        *filter_ctx; // 调用output_filter传入的参数
 };
 
 
 typedef struct {
     ngx_chain_t                 *out;
-    ngx_chain_t                **last;
+    ngx_chain_t                **last; // 指向out->next的指针
     ngx_connection_t            *connection;
     ngx_pool_t                  *pool;
     off_t                        limit;

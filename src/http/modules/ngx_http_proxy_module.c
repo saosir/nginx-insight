@@ -1482,7 +1482,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
     if (r->request_body_no_buffering) {
 
         u->request_bufs = cl;
-
+        // 内部代理传输给upstream使用chunked
         if (ctx->internal_chunked) {
             u->output.output_filter = ngx_http_proxy_body_output_filter;
             u->output.filter_ctx = r;
@@ -1601,7 +1601,7 @@ ngx_http_proxy_body_output_filter(void *data, ngx_chain_t *in)
 
     size = 0;
     cl = in;
-    fl = ll;
+    fl = ll; // 记录链表头
 
     for ( ;; ) {
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,

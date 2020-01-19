@@ -23,22 +23,22 @@ struct ngx_http_upstream_rr_peer_s {
     ngx_str_t                       server;
 
     ngx_int_t                       current_weight;
-    ngx_int_t                       effective_weight;
+    ngx_int_t                       effective_weight; // 有效权重，释放后如果小于0会重置为0
     ngx_int_t                       weight;
 
-    ngx_uint_t                      conns;
+    ngx_uint_t                      conns; // 可以尝试连接次数
     ngx_uint_t                      max_conns;
 
-    ngx_uint_t                      fails;
-    time_t                          accessed;
-    time_t                          checked;
+    ngx_uint_t                      fails; // 连接失败的次数
+    time_t                          accessed; //最后一次访问时间
+    time_t                          checked; // 最后一次检查时间
 
     ngx_uint_t                      max_fails;
     time_t                          fail_timeout;
     ngx_msec_t                      slow_start;
     ngx_msec_t                      start_time;
 
-    ngx_uint_t                      down;
+    ngx_uint_t                      down; // 已下线，后端无法使用
 
 #if (NGX_HTTP_SSL || NGX_COMPAT)
     void                           *ssl_session;
@@ -59,7 +59,7 @@ struct ngx_http_upstream_rr_peer_s {
 typedef struct ngx_http_upstream_rr_peers_s  ngx_http_upstream_rr_peers_t;
 
 struct ngx_http_upstream_rr_peers_s {
-    ngx_uint_t                      number;
+    ngx_uint_t                      number; // peer链表（数组）个数
 
 #if (NGX_HTTP_UPSTREAM_ZONE)
     ngx_slab_pool_t                *shpool;
@@ -74,7 +74,7 @@ struct ngx_http_upstream_rr_peers_s {
 
     ngx_str_t                      *name;
 
-    ngx_http_upstream_rr_peers_t   *next;
+    ngx_http_upstream_rr_peers_t   *next; // backup server
 
     ngx_http_upstream_rr_peer_t    *peer; // 后端peer链表
 };
@@ -123,12 +123,12 @@ struct ngx_http_upstream_rr_peers_s {
 
 #endif
 
-
+// 每个请求连接upstream时候关联一个该结构体，用于记录连接upstream上下文状态
 typedef struct {
     ngx_uint_t                      config;
     ngx_http_upstream_rr_peers_t   *peers;
-    ngx_http_upstream_rr_peer_t    *current;
-    uintptr_t                      *tried; // bitmap 每一位代表一台后端的状态，0表示可用，1表示不可用
+    ngx_http_upstream_rr_peer_t    *current; // 当前使用的peer
+    uintptr_t                      *tried; // 1表示已经尝试连接过，防止对同一请求重复连接同一个upstream peer
     uintptr_t                       data;
 } ngx_http_upstream_rr_peer_data_t;
 
