@@ -317,11 +317,11 @@ typedef void (*ngx_http_upstream_handler_pt)(ngx_http_request_t *r,
 
 
 struct ngx_http_upstream_s {
-    // upstream vent handler, socket事件回调时候会被调用
+    // upstream event handler, socket事件回调时候会被调用
     ngx_http_upstream_handler_pt     read_event_handler;
     ngx_http_upstream_handler_pt     write_event_handler;
 
-    ngx_peer_connection_t            peer; // 管理对端连接，包括upstream负载均衡算法
+    ngx_peer_connection_t            peer; // 管理upstream连接，包括upstream负载均衡算法
 
     ngx_event_pipe_t                *pipe;
 
@@ -342,23 +342,24 @@ struct ngx_http_upstream_s {
 
     ngx_buf_t                        from_client;
 
-    ngx_buf_t                        buffer; // 存储来自upstream的response
-    off_t                            length;
+    ngx_buf_t                        buffer; // 存储来自upstream的response，io recv后先将数据缓存于此
+    off_t                            length; // 需要读取来自upstream响应的字节数
 
-    ngx_chain_t                     *out_bufs;
-    ngx_chain_t                     *busy_bufs;
-    ngx_chain_t                     *free_bufs;
+    ngx_chain_t                     *out_bufs; // upstream准备发送给client的数据
+    ngx_chain_t                     *busy_bufs; // 正在调度io发送给client的数据
+    ngx_chain_t                     *free_bufs; // 空闲块
 
-    ngx_int_t                      (*input_filter_init)(void *data);
-    ngx_int_t                      (*input_filter)(void *data, ssize_t bytes);
-    void                            *input_filter_ctx;
+    // input_filter回调与上下文
+    ngx_int_t                      (*input_filter_init)(void *data); // 开始转发upstream响应后调用（ngx_http_upstream_send_response）
+    ngx_int_t                      (*input_filter)(void *data, ssize_t bytes); // 用于处理过滤upstream的响应如chunked解码
+    void                            *input_filter_ctx; // input_filter上下文
 
 #if (NGX_HTTP_CACHE)
     ngx_int_t                      (*create_key)(ngx_http_request_t *r);
 #endif
     ngx_int_t                      (*create_request)(ngx_http_request_t *r);
     ngx_int_t                      (*reinit_request)(ngx_http_request_t *r);
-    ngx_int_t                      (*process_header)(ngx_http_request_t *r);
+    ngx_int_t                      (*process_header)(ngx_http_request_t *r); // 处理来自upstream返回的结果，会随处理过程指向不同回调函数
     void                           (*abort_request)(ngx_http_request_t *r);
     void                           (*finalize_request)(ngx_http_request_t *r,
                                          ngx_int_t rc);
@@ -369,7 +370,7 @@ struct ngx_http_upstream_s {
 
     ngx_msec_t                       start_time;
 
-    ngx_http_upstream_state_t       *state;
+    ngx_http_upstream_state_t       *state; // 记录upstream统计数据，包括请求开始/结束时间及数据接收发送量等指标
 
     ngx_str_t                        method;
     ngx_str_t                        schema;
@@ -396,7 +397,7 @@ struct ngx_http_upstream_s {
     unsigned                         request_sent:1; // 是否开始发送请求到upstream
     unsigned                         request_body_sent:1; // 发送body完成
     unsigned                         request_body_blocked:1;
-    unsigned                         header_sent:1;
+    unsigned                         header_sent:1; // 已经将upstream的响应转发给客户端
 };
 
 

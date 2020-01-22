@@ -1655,7 +1655,7 @@ ngx_http_weak_etag(ngx_http_request_t *r)
     etag->value.len = len;
 }
 
-
+// 发送响应给客户端，输出内容需要经过header filter和body filter
 ngx_int_t
 ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
     ngx_str_t *ct, ngx_http_complex_value_t *cv)
@@ -1734,7 +1734,7 @@ ngx_http_send_response(ngx_http_request_t *r, ngx_uint_t status,
     return ngx_http_output_filter(r, &out);
 }
 
-// 调用 ngx_http_top_header_filter
+// 发送header，调用 ngx_http_top_header_filter 链表所有的header filter
 ngx_int_t
 ngx_http_send_header(ngx_http_request_t *r)
 {

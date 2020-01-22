@@ -371,7 +371,7 @@ typedef void (*ngx_http_event_handler_pt)(ngx_http_request_t *r);
 struct ngx_http_request_s {
     uint32_t                          signature;         /* "HTTP" */
 
-    ngx_connection_t                 *connection;
+    ngx_connection_t                 *connection; // 来自客户端的socket连接
 
     void                            **ctx;
     void                            **main_conf;
@@ -385,7 +385,7 @@ struct ngx_http_request_s {
     ngx_http_cache_t                 *cache;
 #endif
 
-    ngx_http_upstream_t              *upstream; // 处理请求的upstream
+    ngx_http_upstream_t              *upstream; // 处理upstream相关请求与响应
     ngx_array_t                      *upstream_states;
                                          /* of ngx_http_upstream_state_t */
 
@@ -558,7 +558,7 @@ struct ngx_http_request_s {
 
     /* used to parse HTTP headers */
 
-    ngx_uint_t                        state;
+    ngx_uint_t                        state; // http请求的解析状态，用于解析status line、headers
 
     ngx_uint_t                        header_hash;
     ngx_uint_t                        lowcase_index;

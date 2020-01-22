@@ -868,7 +868,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    ngx_http_set_ctx(r, ctx, ngx_http_proxy_module);
+    ngx_http_set_ctx(r, ctx, ngx_http_proxy_module); // 将req的上下文设置为Proxy module上下文
 
     plcf = ngx_http_get_module_loc_conf(r, ngx_http_proxy_module);
 
@@ -1548,7 +1548,7 @@ ngx_http_proxy_reinit_request(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-
+// 向socket写入数据
 static ngx_int_t
 ngx_http_proxy_body_output_filter(void *data, ngx_chain_t *in)
 {
@@ -1715,7 +1715,7 @@ out:
     return rc;
 }
 
-
+// 作为request处理upstream的process_handler回调
 static ngx_int_t
 ngx_http_proxy_process_status_line(ngx_http_request_t *r)
 {
@@ -1811,7 +1811,7 @@ ngx_http_proxy_process_header(ngx_http_request_t *r)
 
         rc = ngx_http_parse_header_line(r, &r->upstream->buffer, 1);
 
-        if (rc == NGX_OK) {
+        if (rc == NGX_OK) { // 得到一个header key value
 
             /* a header line has been parsed successfully */
 
@@ -1861,7 +1861,7 @@ ngx_http_proxy_process_header(ngx_http_request_t *r)
             continue;
         }
 
-        if (rc == NGX_HTTP_PARSE_HEADER_DONE) {
+        if (rc == NGX_HTTP_PARSE_HEADER_DONE) { // 完成header解析
 
             /* a whole header has been parsed successfully */
 
@@ -1981,7 +1981,8 @@ ngx_http_proxy_input_filter_init(void *data)
         u->length = 0;
         u->keepalive = !u->headers_in.connection_close;
 
-    } else if (u->headers_in.chunked) { // chunked算法
+    } else if (u->headers_in.chunked) {
+        // 如果是chunked算法，将input_filter修改为ngx_http_proxy_non_buffered_chunked_filter用于解码chunked
         /* chunked */
 
         u->pipe->input_filter = ngx_http_proxy_chunked_filter;
@@ -2194,7 +2195,8 @@ ngx_http_proxy_chunked_filter(ngx_event_pipe_t *p, ngx_buf_t *buf)
     return NGX_OK;
 }
 
-
+// input filter，将来自upstream的响应直接输出到out_bufs
+// 此处进修改指针不做任何拷贝操作
 static ngx_int_t
 ngx_http_proxy_non_buffered_copy_filter(void *data, ssize_t bytes)
 {
@@ -2205,7 +2207,7 @@ ngx_http_proxy_non_buffered_copy_filter(void *data, ssize_t bytes)
     ngx_http_upstream_t  *u;
 
     u = r->upstream;
-
+    // 将接收到的buf放入out_bufs
     for (cl = u->out_bufs, ll = &u->out_bufs; cl; cl = cl->next) {
         ll = &cl->next;
     }
@@ -2215,14 +2217,14 @@ ngx_http_proxy_non_buffered_copy_filter(void *data, ssize_t bytes)
         return NGX_ERROR;
     }
 
-    *ll = cl;
+    *ll = cl; // 接入out_bufs尾部
 
     cl->buf->flush = 1;
     cl->buf->memory = 1;
 
     b = &u->buffer;
-
-    cl->buf->pos = b->last;
+    // 指针引用未经过内存拷贝
+    cl->buf->pos = b->last; // io recv从b->last开始写，但还未更新过b->last，因此这里开始复制
     b->last += bytes;
     cl->buf->last = b->last;
     cl->buf->tag = u->output.tag;

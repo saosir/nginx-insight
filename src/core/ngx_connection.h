@@ -172,7 +172,7 @@ struct ngx_connection_s {
 
     unsigned            log_error:3;     /* ngx_connection_log_error_e */
 
-    unsigned            timedout:1;
+    unsigned            timedout:1; // 是否超时，包括upstream和downstream
     unsigned            error:1;
     unsigned            destroyed:1;
 

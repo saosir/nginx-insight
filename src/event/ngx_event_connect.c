@@ -32,7 +32,7 @@ ngx_event_connect_peer(ngx_peer_connection_t *pc)
     ngx_socket_t       s;
     ngx_event_t       *rev, *wev;
     ngx_connection_t  *c;
-    // 调用upstream.get获得peer地址进行连接
+    // 调用负载均衡算法选取upstream的peer进行连接
     rc = pc->get(pc, pc->data);
     if (rc != NGX_OK) {
         return rc;

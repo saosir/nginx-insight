@@ -116,7 +116,7 @@ struct ngx_output_chain_ctx_s {
 
 typedef struct {
     ngx_chain_t                 *out;
-    ngx_chain_t                **last; // 指向out->next的指针
+    ngx_chain_t                **last; // 指向out链表最后的指针的指针
     ngx_connection_t            *connection;
     ngx_pool_t                  *pool;
     off_t                        limit;

@@ -1601,6 +1601,7 @@ args:
 }
 
 // 解析http line 状态机
+// 返回NGX_AGAIN表示需要数据不够继续读取
 ngx_int_t
 ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
     ngx_http_status_t *status)
@@ -1813,7 +1814,7 @@ done:
     }
 
     status->http_version = r->http_major * 1000 + r->http_minor;
-    r->state = sw_start;
+    r->state = sw_start; // 解析完成，重置
 
     return NGX_OK;
 }

@@ -241,7 +241,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf,
 }
 
 // 请求到来后需要连接upstream调用
-// round_robin负载均衡 init
+// 初始化round_robin负载均衡上下文
 ngx_int_t
 ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r,
     ngx_http_upstream_srv_conf_t *us)

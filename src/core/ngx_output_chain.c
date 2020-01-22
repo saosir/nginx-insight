@@ -675,7 +675,7 @@ ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)
     return NGX_OK;
 }
 
-
+// 调用send_chain处理io写入
 ngx_int_t
 ngx_chain_writer(void *data, ngx_chain_t *in)
 {
@@ -800,7 +800,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
     }
 
     // 返回输出到链表的位置
-    chain = c->send_chain(c, ctx->out, ctx->limit);
+    chain = c->send_chain(c, ctx->out, ctx->limit); // 底层调用ngx_writev_chain模块
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
                    "chain writer out: %p", chain);
@@ -809,7 +809,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    // 是否chain之前的buf
+    // 释放chain之前的buf
     for (cl = ctx->out; cl && cl != chain; /* void */) {
         ln = cl;
         cl = cl->next;

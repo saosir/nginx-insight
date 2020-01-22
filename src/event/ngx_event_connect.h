@@ -34,7 +34,7 @@ typedef void (*ngx_event_save_peer_session_pt)(ngx_peer_connection_t *pc,
 
 
 struct ngx_peer_connection_s {
-    ngx_connection_t                *connection; // socket连接
+    ngx_connection_t                *connection; // upstream socket连接
 
     struct sockaddr                 *sockaddr; // 调用ngx_http_upstream_t->peer.get之后会修改为peer的地址
     socklen_t                        socklen;

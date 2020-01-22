@@ -1074,7 +1074,7 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         old_ecf = NULL;
     }
 
-
+    // 查找event io模块
     for (m = 0; cf->cycle->modules[m]; m++) {
         if (cf->cycle->modules[m]->type != NGX_EVENT_MODULE) {
             continue;
