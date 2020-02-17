@@ -2909,7 +2909,7 @@ ngx_http_upstream_process_trailers(ngx_http_request_t *r,
     return NGX_OK;
 }
 
-// 接收完upstream的response后，开始返回response到client
+// 接收完upstream的header response后，开始返回response到client
 static void
 ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)
 {

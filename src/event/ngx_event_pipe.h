@@ -41,10 +41,10 @@ struct ngx_event_pipe_s {
      * from the raw bufs to an incoming chain
      */
 
-    ngx_event_pipe_input_filter_pt    input_filter;
+    ngx_event_pipe_input_filter_pt    input_filter; //接收upstream返回时候调用，协议解析如uwsgi、scgi
     void                             *input_ctx;
 
-    ngx_event_pipe_output_filter_pt   output_filter;
+    ngx_event_pipe_output_filter_pt   output_filter; // 发送数据到client时候调用
     void                             *output_ctx;
 
 #if (NGX_THREADS || NGX_COMPAT)

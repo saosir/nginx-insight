@@ -348,7 +348,7 @@ ngx_event_pipe_read_upstream(ngx_event_pipe_t *p)
                 cl->buf->last = cl->buf->end;
 
                 /* STUB */ cl->buf->num = p->num++;
-
+                // 调用input_filter处理upstream返回的响应
                 if (p->input_filter(p, cl->buf) == NGX_ERROR) {
                     return NGX_ABORT;
                 }

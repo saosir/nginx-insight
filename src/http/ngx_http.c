@@ -70,6 +70,7 @@ ngx_uint_t   ngx_http_max_module; // http模块最大下标
 
 // filter链表，每个模块会定义全局变量ngx_http_next_header_filter，与ngx_http_top_*组成链表
 // 采用头插发，最先注册的filter最后调用
+// 发送给client时候调用
 ngx_http_output_header_filter_pt  ngx_http_top_header_filter;
 ngx_http_output_body_filter_pt    ngx_http_top_body_filter;
 ngx_http_request_body_filter_pt   ngx_http_top_request_body_filter;

@@ -351,7 +351,7 @@ struct ngx_http_upstream_s {
 
     // input_filter回调与上下文
     ngx_int_t                      (*input_filter_init)(void *data); // 开始转发upstream响应后调用（ngx_http_upstream_send_response）
-    ngx_int_t                      (*input_filter)(void *data, ssize_t bytes); // 用于处理过滤upstream的响应如chunked解码
+    ngx_int_t                      (*input_filter)(void *data, ssize_t bytes); // 用于处理upstream的响应如chunked解码
     void                            *input_filter_ctx; // input_filter上下文
 
 #if (NGX_HTTP_CACHE)

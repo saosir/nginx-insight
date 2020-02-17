@@ -152,6 +152,7 @@ ngx_http_chunked_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (size) {
+        // 申请一块内存存储chunk size大小
         tl = ngx_chain_get_free_buf(r->pool, &ctx->free);
         if (tl == NULL) {
             return NGX_ERROR;
@@ -178,7 +179,7 @@ ngx_http_chunked_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         b->pos = chunk;
         b->last = ngx_sprintf(chunk, "%xO" CRLF, size);
 
-        tl->next = out;
+        tl->next = out; // 插入out链表头部
         out = tl;
     }
 
@@ -197,6 +198,7 @@ ngx_http_chunked_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
         }
 
     } else if (size > 0) {
+        // 尾部\r\n标志
         tl = ngx_chain_get_free_buf(r->pool, &ctx->free);
         if (tl == NULL) {
             return NGX_ERROR;
